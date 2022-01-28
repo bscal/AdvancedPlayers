@@ -32,6 +32,8 @@ dependencies {
     modImplementation("com.github.bscal:MCSeasons:${project.mcseasons_version}") {
         exclude group: 'com.oroarmor', module: 'oro-config-common'
     }
+    // Used to dev environment so i don't need to download the mod
+    include("com.github.bscal:MCSeasons:${project.mcseasons_version}")
     modImplementation(include("io.github.onyxstudios.Cardinal-Components-API:cardinal-components-base:${project.cardinal_components_version}"))
     modImplementation(include("io.github.onyxstudios.Cardinal-Components-API:cardinal-components-entity:${project.cardinal_components_version}"))
 }
