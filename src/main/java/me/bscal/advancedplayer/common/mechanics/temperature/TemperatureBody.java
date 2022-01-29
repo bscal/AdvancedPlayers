@@ -6,7 +6,7 @@ import me.bscal.advancedplayer.common.mechanics.body.EntityBody;
 import me.bscal.advancedplayer.common.mechanics.body.FloatBodyPart;
 import me.bscal.seasons.api.SeasonAPI;
 import me.bscal.seasons.common.seasons.SeasonState;
-import me.bscal.seasons.common.seasons.SeasonTypes;
+import me.bscal.seasons.common.seasons.SeasonType;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
@@ -14,7 +14,6 @@ import net.minecraft.item.Items;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.biome.Biome;
 
 public class TemperatureBody extends EntityBody
@@ -104,40 +103,47 @@ public class TemperatureBody extends EntityBody
 		Biome biome = m_Provider.world.getBiome(pos);
 		Identifier biomeId = SeasonAPI.getBiomeId(biome, m_Provider.world);
 		SeasonState season = SeasonAPI.getSeason(biomeId);
-		SeasonTypes seasonType = SeasonAPI.getSeasonType(biomeId);
-
-
+		SeasonType seasonType = SeasonAPI.getSeasonType(biomeId);
 
 		return temperature;
 	}
 
 	public void UpdateTemperatures()
 	{
-		float airTemperature = 37f;
+		BlockPos pos = m_Provider.getBlockPos();
+		Biome biome = m_Provider.world.getBiome(pos);
+		Identifier biomeId = SeasonAPI.getBiomeId(biome, m_Provider.world);
+		TemperatureBiomeRegistry.BiomeClimate climate = TemperatureBiomeRegistry.BiomesToClimateMap.get(biomeId);
+		float airTemperature = climate.temperatures().GetTemperature();
 		float windModifier = 0f;
 		float wetnessModifier = 0f;
 
 		float insulation = 0f;
+		float windResistance = 0f;
 
-		float changeToNormal = MathHelper.lerp(1f / 20f, m_CoreBodyValue, NORMAL);
+		float delta = 1.0f;
+		float changeToNormal = MathHelper.lerp(delta, m_CoreBodyValue, NORMAL);
 		float temperatureDelta = airTemperature - (m_Work + changeToNormal);
 		float finalTemperatureDelta = temperatureDelta + (temperatureDelta * MathHelper.clamp(insulation, 0f, 1.0f));
 
 		if (FabricLoader.getInstance().isDevelopmentEnvironment())
 		{
 			AdvancedPlayer.LOGGER.info(String.format("""
-             
-													+--------+ Temperature +--------+
-													 	CoreBodyValue = %.2f
-													 	Work = %.2f
-													 	airTemperature = %.2f
-													 	windModifier = %.2f
-													 	wetnessModifier = %.2f
-													 	insulation = %.2f
-													 	changeToNormal = %.2f
-													 	temperatureDelta = %.2f
-													 	finalTemperatureDelta = %.2f""", m_CoreBodyValue, m_Work, airTemperature, windModifier,
-					wetnessModifier, insulation, changeToNormal, temperatureDelta, finalTemperatureDelta));
+													              
+													 +--------+ Temperature +--------+
+													  	CoreBodyValue = %.2f
+													  	Work = %.2f
+													  	airTemperature = %.2f
+													  	windModifier = %.2f
+													  	wetnessModifier = %.2f
+													  	insulation = %.2f
+													  	windResistance = %.2f,
+													  	changeToNormal = %.2f
+													  	temperatureDelta = %.2f
+													  	finalTemperatureDelta = %.2f
+													  	biome = %s
+													  	climate = %s""", m_CoreBodyValue, m_Work, airTemperature, windModifier, wetnessModifier, insulation,
+					windResistance, changeToNormal, temperatureDelta, finalTemperatureDelta, biomeId, climate));
 		}
 
 		SetCoreBodyValue(finalTemperatureDelta);
