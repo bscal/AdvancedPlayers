@@ -2,11 +2,10 @@ package me.bscal.advancedplayer.common.mechanics.temperature;
 
 import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
 import me.bscal.advancedplayer.AdvancedPlayer;
-import me.bscal.advancedplayer.common.mechanics.body.EntityBody;
+import me.bscal.advancedplayer.common.components.ComponentManager;
+import me.bscal.advancedplayer.common.mechanics.body.EntityBodyComponent;
 import me.bscal.advancedplayer.common.mechanics.body.FloatBodyPart;
 import me.bscal.seasons.api.SeasonAPI;
-import me.bscal.seasons.common.seasons.SeasonState;
-import me.bscal.seasons.common.seasons.SeasonType;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
@@ -16,7 +15,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.biome.Biome;
 
-public class TemperatureBody extends EntityBody
+public class TemperatureBody extends EntityBodyComponent
 {
 
 	public static final float MAX_HOT = 50.0f;
@@ -31,6 +30,8 @@ public class TemperatureBody extends EntityBody
 	public static final float FREEZING = 31.0f; // Human body limit
 	public static final float MIN_COLD = 25.0f;
 
+	public static final int UPDATES_PER_TICK = 64 - 1; // Must be a power of 2
+
 	public static final Reference2ObjectOpenHashMap<Item, TemperatureClothing> CLOTHING_MAP = new Reference2ObjectOpenHashMap<>();
 
 	public static void LoadClothingMap()
@@ -42,70 +43,46 @@ public class TemperatureBody extends EntityBody
 		CLOTHING_MAP.put(Items.LEATHER_HELMET, new TemperatureClothing(0.3f, 0.3f));
 	}
 
-	protected float m_Work;
-	protected float m_WorkRecoverySpeed;
+	public float Work; // Amount of additional work the play is doing. IE running
+	public float WorkRecoverySpeed; // How fast Work degrades to 0
+	protected final float m_DeltaToNormalTemperature; // The rate at which player's body goes to default temp
+	protected int m_UpdateCounter;
 
 	public TemperatureBody(PlayerEntity player)
 	{
-		super(player, MIN_COLD, MAX_HOT, (bodyPartMap) -> {
-			// I wonder if the compilers or java optimizes this into a putAll or something?
-			bodyPartMap.put("Head", new FloatBodyPart(NORMAL, MIN_COLD, MAX_HOT, 1.5f));
-			bodyPartMap.put("Chest", new FloatBodyPart(NORMAL, MIN_COLD, MAX_HOT, 1.0f));
-			bodyPartMap.put("LArm", new FloatBodyPart(NORMAL, MIN_COLD, MAX_HOT, .5f));
-			bodyPartMap.put("RArm", new FloatBodyPart(NORMAL, MIN_COLD, MAX_HOT, .5f));
-			bodyPartMap.put("Groin", new FloatBodyPart(NORMAL, MIN_COLD, MAX_HOT, 1.0f));
-			bodyPartMap.put("LLeg", new FloatBodyPart(NORMAL, MIN_COLD, MAX_HOT, .75f));
-			bodyPartMap.put("RLeg", new FloatBodyPart(NORMAL, MIN_COLD, MAX_HOT, .75f));
-			bodyPartMap.put("LFoot", new FloatBodyPart(NORMAL, MIN_COLD, MAX_HOT, 0.5f));
-			bodyPartMap.put("RFoot", new FloatBodyPart(NORMAL, MIN_COLD, MAX_HOT, 0.5f));
-		});
-		m_Work = 0;
-		m_WorkRecoverySpeed = 0.1f;
-		SetCoreBodyValue(NORMAL);
+		super(player, EntityBodyComponent.MAX_PARTS, NORMAL, MIN_COLD, MAX_HOT);
+		Work = 0;
+		WorkRecoverySpeed = 0.1f;
+		m_DeltaToNormalTemperature = 1.0f;
 	}
-
-	@Override
-	public void ResetBody()
-	{
-		super.ResetBody();
-		SetCoreBodyValue(NORMAL);
-	}
-
-	int m_Counter = 0;
 
 	@Override
 	public void serverTick()
 	{
-		if (m_Work > 0)
-			m_Work -= m_WorkRecoverySpeed;
-		else
-			m_Work = 0;
+		TickWork();
 
-		// Did not want to calculate temperature every tick
-		// Updates every 64 ticks (~3 secs)
-		if ((m_Counter++ % 64) == 0)
+		// Updates every 64 ticks (3.2 secs)
+		// I was looking into this, and I was not sure if Java's
+		// irem instruction optimized to use AND, I presume it would,
+		// but I just force it to use AND in case
+		if ((m_UpdateCounter++ & UPDATES_PER_TICK) == 0)
 		{
 			UpdateTemperatures();
-			super.serverTick();
+			super.serverTick(); // Checks if dirty and syncs
 		}
+	}
+
+	public void TickWork()
+	{
+		if (Work > 0)
+			Work -= WorkRecoverySpeed;
+		else
+			Work = 0;
 	}
 
 	public void AddWork(float amount)
 	{
-		m_Work += amount;
-	}
-
-	public float CalculateAirTemperature()
-	{
-		float temperature = 0f;
-
-		BlockPos pos = m_Provider.getBlockPos();
-		Biome biome = m_Provider.world.getBiome(pos);
-		Identifier biomeId = SeasonAPI.getBiomeId(biome, m_Provider.world);
-		SeasonState season = SeasonAPI.getSeason(biomeId);
-		SeasonType seasonType = SeasonAPI.getSeasonType(biomeId);
-
-		return temperature;
+		Work += amount;
 	}
 
 	public void UpdateTemperatures()
@@ -114,17 +91,21 @@ public class TemperatureBody extends EntityBody
 		Biome biome = m_Provider.world.getBiome(pos);
 		Identifier biomeId = SeasonAPI.getBiomeId(biome, m_Provider.world);
 		TemperatureBiomeRegistry.BiomeClimate climate = TemperatureBiomeRegistry.BiomesToClimateMap.get(biomeId);
+
 		float airTemperature = climate.temperatures().GetTemperature();
-		float windModifier = 0f;
-		float wetnessModifier = 0f;
+
+		float wind = 0f;
+		float wetness = ComponentManager.WETNESS.get(m_Provider).Wetness;
 
 		float insulation = 0f;
 		float windResistance = 0f;
 
-		float delta = 1.0f;
-		float changeToNormal = MathHelper.lerp(delta, m_CoreBodyValue, NORMAL);
-		float temperatureDelta = airTemperature - (m_Work + changeToNormal);
+		float changeToNormal = MathHelper.lerp(m_DeltaToNormalTemperature, CoreBodyValue, NORMAL);
+		float temperatureDelta = airTemperature - (Work + changeToNormal);
 		float finalTemperatureDelta = temperatureDelta + (temperatureDelta * MathHelper.clamp(insulation, 0f, 1.0f));
+
+		CoreBodyValue = finalTemperatureDelta;
+		IsDirty = true;
 
 		if (FabricLoader.getInstance().isDevelopmentEnvironment())
 		{
@@ -142,13 +123,22 @@ public class TemperatureBody extends EntityBody
 													  	temperatureDelta = %.2f
 													  	finalTemperatureDelta = %.2f
 													  	biome = %s
-													  	climate = %s""", m_CoreBodyValue, m_Work, airTemperature, windModifier, wetnessModifier, insulation,
+													  	climate = %s""", CoreBodyValue, Work, airTemperature, wind, wetness, insulation,
 					windResistance, changeToNormal, temperatureDelta, finalTemperatureDelta, biomeId, climate));
 		}
+	}
 
-		SetCoreBodyValue(finalTemperatureDelta);
-
-		//m_PartsMap.forEach((s, bodyPart) -> ((TemperatureBodyPart) bodyPart).UpdateTemperature(this, airTemperature, windModifier, wetnessModifier));
-
+	@Override
+	public void PopulateBodyMap()
+	{
+		BodyParts[EntityBodyComponent.HEAD] = new FloatBodyPart(NORMAL, MIN_COLD, MAX_HOT, 1.5f);
+		BodyParts[EntityBodyComponent.CHEST] = new FloatBodyPart(NORMAL, MIN_COLD, MAX_HOT, 1.0f);
+		BodyParts[EntityBodyComponent.LEFT_ARM] = new FloatBodyPart(NORMAL, MIN_COLD, MAX_HOT, .5f);
+		BodyParts[EntityBodyComponent.RIGHT_ARM] = new FloatBodyPart(NORMAL, MIN_COLD, MAX_HOT, .5f);
+		BodyParts[EntityBodyComponent.GROIN] = new FloatBodyPart(NORMAL, MIN_COLD, MAX_HOT, 1.0f);
+		BodyParts[EntityBodyComponent.LEFT_LEG] = new FloatBodyPart(NORMAL, MIN_COLD, MAX_HOT, .75f);
+		BodyParts[EntityBodyComponent.RIGHT_LEG] = new FloatBodyPart(NORMAL, MIN_COLD, MAX_HOT, .75f);
+		BodyParts[EntityBodyComponent.LEFT_FOOT] = new FloatBodyPart(NORMAL, MIN_COLD, MAX_HOT, 0.5f);
+		BodyParts[EntityBodyComponent.RIGHT_FOOT] = new FloatBodyPart(NORMAL, MIN_COLD, MAX_HOT, 0.5f);
 	}
 }

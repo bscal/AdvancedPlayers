@@ -1,9 +1,7 @@
 package me.bscal.advancedplayer.common.mechanics.temperature;
 
 import me.bscal.advancedplayer.common.mechanics.body.BodyPart;
-import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
 
@@ -21,7 +19,7 @@ public class TemperatureBodyPart implements BodyPart
 
 	public void UpdateTemperature(float temperature, TemperatureBody body)
 	{
-		Temperature += temperature - body.m_Work;
+		Temperature += temperature - body.Work;
 	}
 
 	public void ProcessClothing(PlayerEntity provider)

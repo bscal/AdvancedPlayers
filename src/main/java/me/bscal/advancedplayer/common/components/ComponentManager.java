@@ -15,8 +15,8 @@ public class ComponentManager implements EntityComponentInitializer
 	public static final ComponentKey<TemperatureBody> BODY_TEMPERATURE = ComponentRegistryV3.INSTANCE.getOrCreate(
 			new Identifier(AdvancedPlayer.MOD_ID, "body_temperature"), TemperatureBody.class);
 
-	public static final ComponentKey<FloatComponent> WETNESS = ComponentRegistryV3.INSTANCE.getOrCreate(
-			new Identifier(AdvancedPlayer.MOD_ID, "wetness"), FloatComponent.class);
+	public static final ComponentKey<WetnessComponent> WETNESS = ComponentRegistryV3.INSTANCE.getOrCreate(new Identifier(AdvancedPlayer.MOD_ID, "wetness"),
+																										  WetnessComponent.class);
 
 	@Override
 	public void registerEntityComponentFactories(EntityComponentFactoryRegistry registry)
@@ -24,4 +24,5 @@ public class ComponentManager implements EntityComponentInitializer
 		registry.registerForPlayers(BODY_TEMPERATURE, TemperatureBody::new, RespawnCopyStrategy.INVENTORY);
 		registry.registerForPlayers(WETNESS, WetnessComponent::new, RespawnCopyStrategy.LOSSLESS_ONLY);
 	}
+
 }
