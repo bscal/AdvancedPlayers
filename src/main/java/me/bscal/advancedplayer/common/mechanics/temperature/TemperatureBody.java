@@ -10,6 +10,7 @@ import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.Items;
+import net.minecraft.nbt.NbtCompound;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
@@ -31,17 +32,6 @@ public class TemperatureBody extends EntityBodyComponent
 	public static final float MIN_COLD = 25.0f;
 
 	public static final int UPDATES_PER_TICK = 64 - 1; // Must be a power of 2
-
-	public static final Reference2ObjectOpenHashMap<Item, TemperatureClothing> CLOTHING_MAP = new Reference2ObjectOpenHashMap<>();
-
-	public static void LoadClothingMap()
-	{
-		CLOTHING_MAP.clear();
-		CLOTHING_MAP.put(Items.LEATHER_BOOTS, new TemperatureClothing(0.3f, 0.3f));
-		CLOTHING_MAP.put(Items.LEATHER_LEGGINGS, new TemperatureClothing(0.3f, 0.3f));
-		CLOTHING_MAP.put(Items.LEATHER_CHESTPLATE, new TemperatureClothing(0.3f, 0.3f));
-		CLOTHING_MAP.put(Items.LEATHER_HELMET, new TemperatureClothing(0.3f, 0.3f));
-	}
 
 	public float Work; // Amount of additional work the play is doing. IE running
 	public float WorkRecoverySpeed; // How fast Work degrades to 0
@@ -141,4 +131,38 @@ public class TemperatureBody extends EntityBodyComponent
 		BodyParts[EntityBodyComponent.LEFT_FOOT] = new FloatBodyPart(NORMAL, MIN_COLD, MAX_HOT, 0.5f);
 		BodyParts[EntityBodyComponent.RIGHT_FOOT] = new FloatBodyPart(NORMAL, MIN_COLD, MAX_HOT, 0.5f);
 	}
+
+	@Override
+	public void writeToNbt(NbtCompound nbt)
+	{
+		super.writeToNbt(nbt);
+		nbt.putFloat("Work", Work);
+	}
+
+	@Override
+	public void readFromNbt(NbtCompound nbt)
+	{
+		super.readFromNbt(nbt);
+		Work = nbt.getFloat("Work");
+	}
+
+	public static class TemperatureClothing
+	{
+		public static final Reference2ObjectOpenHashMap<Item, TemperatureClothingData> CLOTHING_MAP = new Reference2ObjectOpenHashMap<>();
+
+		public static void LoadClothingMap()
+		{
+			CLOTHING_MAP.clear();
+			CLOTHING_MAP.put(Items.LEATHER_BOOTS, new TemperatureClothingData(0.3f, 0.3f));
+			CLOTHING_MAP.put(Items.LEATHER_LEGGINGS, new TemperatureClothingData(0.3f, 0.3f));
+			CLOTHING_MAP.put(Items.LEATHER_CHESTPLATE, new TemperatureClothingData(0.3f, 0.3f));
+			CLOTHING_MAP.put(Items.LEATHER_HELMET, new TemperatureClothingData(0.3f, 0.3f));
+		}
+	}
+
+
+	public record TemperatureClothingData(float insulation, float windResistance)
+	{
+	}
+
 }
