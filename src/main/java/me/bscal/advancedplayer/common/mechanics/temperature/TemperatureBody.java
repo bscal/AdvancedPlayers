@@ -64,10 +64,8 @@ public class TemperatureBody extends EntityBodyComponent
 
 	public void TickWork()
 	{
-		if (Work > 0)
-			Work -= WorkRecoverySpeed;
-		else
-			Work = 0;
+		if (Work > 0) Work -= WorkRecoverySpeed;
+		else Work = 0;
 	}
 
 	public void AddWork(float amount)
@@ -113,9 +111,28 @@ public class TemperatureBody extends EntityBodyComponent
 													  	temperatureDelta = %.2f
 													  	finalTemperatureDelta = %.2f
 													  	biome = %s
-													  	climate = %s""", CoreBodyValue, Work, airTemperature, wind, wetness, insulation,
-					windResistance, changeToNormal, temperatureDelta, finalTemperatureDelta, biomeId, climate));
+													  	climate = %s""", CoreBodyValue, Work, airTemperature, wind, wetness, insulation, windResistance,
+													 changeToNormal, temperatureDelta, finalTemperatureDelta, biomeId, climate));
 		}
+	}
+
+	public float GetYTemperature(BlockPos pos)
+	{
+		float y = pos.getY();
+		if (y < -32)
+		{
+			// 15-31C
+			return TemperatureBiomeRegistry.BASE_TEMP + ((-y) - 32) * 0.5f;
+		}
+		if (y > 128)
+		{
+			// 320 max height = 48C
+			// 256 max gen h = 32C
+			// 128 = 8
+			// 96 = 15
+			return TemperatureBiomeRegistry.BASE_TEMP + ((-y) - 128) * 0.25f;
+		}
+		return TemperatureBiomeRegistry.BASE_TEMP;
 	}
 
 	@Override
@@ -159,7 +176,6 @@ public class TemperatureBody extends EntityBodyComponent
 			CLOTHING_MAP.put(Items.LEATHER_HELMET, new TemperatureClothingData(0.3f, 0.3f));
 		}
 	}
-
 
 	public record TemperatureClothingData(float insulation, float windResistance)
 	{
