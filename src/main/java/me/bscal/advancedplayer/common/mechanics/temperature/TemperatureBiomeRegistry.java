@@ -45,32 +45,33 @@ public class TemperatureBiomeRegistry
 
 	public static class ClimateTemperatures
 	{
-		private final float[] m_Temps;
+		public final float[] Temperatures;
 
 		public ClimateTemperatures(float s0, float s1, float s2, float s3)
 		{
-			m_Temps = new float[] { s0, s1, s2, s3 };
+			Temperatures = new float[] { s0, s1, s2, s3 };
 		}
 
 		public ClimateTemperatures(float s0s1, float s2s3)
 		{
-			m_Temps = new float[] { s0s1, s0s1, s2s3, s2s3 };
+			Temperatures = new float[] { s0s1, s0s1, s2s3, s2s3 };
 		}
 
-		public float GetTemperature(int index)
+		public float GetTemperatureForSeasonId(int index)
 		{
-			return m_Temps[index];
+			return Temperatures[index];
 		}
 
-		public float GetTemperature()
+		public float GetCurrentTemperature()
 		{
-			return GetTemperature(GetInternalIndex());
+			return GetTemperatureForSeasonId(GetInternalIndex());
 		}
 
 		@Override
 		public String toString()
 		{
-			return String.format("ClimateTemperatures[s0=%.2f, s1=%.2f, s2=%.2f, s3=%.2f]", m_Temps[0], m_Temps[1], m_Temps[2], m_Temps[3]);
+			return String.format("ClimateTemperatures[s0=%.2f, s1=%.2f, s2=%.2f, s3=%.2f]", Temperatures[0], Temperatures[1], Temperatures[2],
+								 Temperatures[3]);
 		}
 
 		private static int GetInternalIndex()
@@ -81,7 +82,7 @@ public class TemperatureBiomeRegistry
 
 	static
 	{
-		BiomesToClimateMap = new Object2ObjectOpenHashMap<>();
+		BiomesToClimateMap = new Object2ObjectOpenHashMap<>(32);
 		DEFAULT_CLIMATE = new BiomeClimate(TemperatureType.Neutral, 11f, new ClimateTemperatures(15f, 26f, 15f, 0f));
 		BiomesToClimateMap.defaultReturnValue(DEFAULT_CLIMATE);
 

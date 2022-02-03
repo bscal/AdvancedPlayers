@@ -14,6 +14,7 @@ import net.minecraft.nbt.NbtCompound;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
+import net.minecraft.world.LightType;
 import net.minecraft.world.biome.Biome;
 
 public class TemperatureBody extends EntityBodyComponent
@@ -80,13 +81,33 @@ public class TemperatureBody extends EntityBodyComponent
 		Identifier biomeId = SeasonAPI.getBiomeId(biome, m_Provider.world);
 		TemperatureBiomeRegistry.BiomeClimate climate = TemperatureBiomeRegistry.BiomesToClimateMap.get(biomeId);
 
-		float airTemperature = climate.temperatures().GetTemperature();
+		float airTemperature = climate.temperatures().GetCurrentTemperature();
+		float yTemperature = GetYTemperature(pos);
+		float lightTemperature = GetLightTemperature(m_Provider.world.getLightLevel(LightType.SKY, pos));
 
-		float wind = 0f;
+		float humidity = 0f;
+		float wind = 0f; // TODO
 		float wetness = ComponentManager.WETNESS.get(m_Provider).Wetness;
 
-		float insulation = 0f;
+		float insulation = 0f; // TODO Clothing
 		float windResistance = 0f;
+
+		/*
+			Body wants to be at NORMAL temperature.
+			Body creates Work which increases temperature. Heat Production = M - W (We do not calculate M)
+			Temperature goes down over time - Climate effects this
+			If > NORMAL = your hot, < NORMAL = your cold.
+			Heat Loss = R + C + E + K where:
+			R = Radiation (heat loss or gain) between skin, clothing, or surfaces (includes sun). At rest, nude, in 21C environment, heat loss = 60%
+			C = Convection (Air near body) natural - air moving from body, forced - wind. At rest = 18%
+			E = Evaporation // TODO Current not used
+			K = Conduction surfaces (blocks) // TODO Current not used
+			There are other variables, but we don't need those.
+		 */
+		float bodyTemperature = CoreBodyValue + Work;
+		float outsideTemperature = airTemperature + yTemperature;
+		float diff = bodyTemperature - outsideTemperature;
+		float heatLossRate = outsideTemperature + lightTemperature + wind + wetness;
 
 		float changeToNormal = MathHelper.lerp(m_DeltaToNormalTemperature, CoreBodyValue, NORMAL);
 		float temperatureDelta = airTemperature - (Work + changeToNormal);
@@ -116,23 +137,35 @@ public class TemperatureBody extends EntityBodyComponent
 		}
 	}
 
+	public float CalculateHeatLoss(float temperature, float humidity, float wetness, float wind, float insulation, float windResistence)
+	{
+		return 0;
+	}
+
 	public float GetYTemperature(BlockPos pos)
 	{
 		float y = pos.getY();
-		if (y < -32)
+		if (y <= -32)
 		{
 			// 15-31C
-			return TemperatureBiomeRegistry.BASE_TEMP + ((-y) - 32) * 0.5f;
+			return ((-y) - 32) * 0.5f;
 		}
-		if (y > 128)
+		if (y >= 128)
 		{
-			// 320 max height = 48C
-			// 256 max gen h = 32C
-			// 128 = 8
-			// 96 = 15
-			return TemperatureBiomeRegistry.BASE_TEMP + ((-y) - 128) * 0.25f;
+			// 320 max height = -57.6 | 41.6
+			// 256 max gen h = -38.4 | -23.4
+			// 128 start h = 0 | 15
+			// Usually base temp is 15;
+			return -((y - 128) * .3f);
 		}
-		return TemperatureBiomeRegistry.BASE_TEMP;
+		return 0f;
+	}
+
+	public float GetLightTemperature(int lightLevel)
+	{
+		// Light Level 0 - 15
+		//TODO
+		return 0f;
 	}
 
 	@Override

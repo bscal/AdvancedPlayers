@@ -4,7 +4,7 @@ import dev.onyxstudios.cca.api.v3.component.ComponentV3;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.util.math.MathHelper;
 
-public abstract class FloatComponent implements ComponentV3
+public class FloatComponent implements ComponentV3
 {
 	public float Value;
 	public float DefaultValue, MinValue, MaxValue;
