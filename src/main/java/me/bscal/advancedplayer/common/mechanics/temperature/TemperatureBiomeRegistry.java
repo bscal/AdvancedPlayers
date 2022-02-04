@@ -70,8 +70,7 @@ public class TemperatureBiomeRegistry
 		@Override
 		public String toString()
 		{
-			return String.format("ClimateTemperatures[s0=%.2f, s1=%.2f, s2=%.2f, s3=%.2f]", Temperatures[0], Temperatures[1], Temperatures[2],
-								 Temperatures[3]);
+			return String.format("0=%.2f 1=%.2f 2=%.2f 3=%.2f", Temperatures[0], Temperatures[1], Temperatures[2], Temperatures[3]);
 		}
 
 		private static int GetInternalIndex()

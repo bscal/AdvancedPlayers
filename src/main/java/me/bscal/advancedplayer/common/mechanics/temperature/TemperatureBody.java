@@ -6,12 +6,12 @@ import me.bscal.advancedplayer.common.components.ComponentManager;
 import me.bscal.advancedplayer.common.mechanics.body.EntityBodyComponent;
 import me.bscal.advancedplayer.common.mechanics.body.FloatBodyPart;
 import me.bscal.seasons.api.SeasonAPI;
+import net.fabricmc.api.EnvType;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.Items;
 import net.minecraft.nbt.NbtCompound;
-import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.LightType;
@@ -102,9 +102,22 @@ public class TemperatureBody extends EntityBodyComponent
 		CoreBodyValue -= heatLossRate;
 		IsDirty = true;
 
-		if (FabricLoader.getInstance().isDevelopmentEnvironment() && m_Provider.world.isClient && AdvancedPlayerClient.ShowTemperatureDebug)
+		if (FabricLoader.getInstance().isDevelopmentEnvironment() && FabricLoader.getInstance().getEnvironmentType() == EnvType.CLIENT)
 		{
-			AdvancedPlayerClient.TemperatureDebugWindow.Text = String.format("");
+			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.clear();
+			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("bodyTemperature = " + bodyTemperature);
+			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("CoreBodyValue = " + CoreBodyValue);
+			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("Work = " + Work);
+			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("outsideTemperature = " + outsideTemperature);
+			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("airTemperature = " + airTemperature);
+			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("yTemperature = " + yTemperature);
+			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("diff = " + diff);
+			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("heatLossRate = " + heatLossRate);
+			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("biomeId = " + biomeId);
+			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("season = " + SeasonAPI.getSeason(biomeId));
+			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("climateType = " + climate.type());
+			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("climateBaseTemp = " + climate.baseTemperature());
+			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("climateTemperatures = " + climate.temperatures());
 		}
 	}
 
