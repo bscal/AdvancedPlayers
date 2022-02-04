@@ -19,6 +19,10 @@ repositories {
         name = 'Ladysnake Mods'
         url = 'https://ladysnake.jfrog.io/artifactory/mods'
     }
+    maven {
+        name = "CottonMC"
+        url = "https://server.bbkr.space/artifactory/libs-release"
+    }
 }
 
 dependencies {
@@ -37,6 +41,7 @@ dependencies {
     include("com.github.bscal:MCSeasons:${project.mcseasons_version}")
     modImplementation(include("io.github.onyxstudios.Cardinal-Components-API:cardinal-components-base:${project.cardinal_components_version}"))
     modImplementation(include("io.github.onyxstudios.Cardinal-Components-API:cardinal-components-entity:${project.cardinal_components_version}"))
+    modImplementation include("io.github.cottonmc:LibGui:${project.libgui_version}")
 }
 
 processResources {

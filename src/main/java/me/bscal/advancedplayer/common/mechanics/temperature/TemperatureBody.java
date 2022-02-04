@@ -1,7 +1,7 @@
 package me.bscal.advancedplayer.common.mechanics.temperature;
 
 import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
-import me.bscal.advancedplayer.AdvancedPlayer;
+import me.bscal.advancedplayer.client.AdvancedPlayerClient;
 import me.bscal.advancedplayer.common.components.ComponentManager;
 import me.bscal.advancedplayer.common.mechanics.body.EntityBodyComponent;
 import me.bscal.advancedplayer.common.mechanics.body.FloatBodyPart;
@@ -11,9 +11,9 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.Items;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.LightType;
 import net.minecraft.world.biome.Biome;
 
@@ -35,23 +35,19 @@ public class TemperatureBody extends EntityBodyComponent
 	public static final int UPDATES_PER_TICK = 64 - 1; // Must be a power of 2
 
 	public float Work; // Amount of additional work the play is doing. IE running
-	public float WorkRecoverySpeed; // How fast Work degrades to 0
-	protected final float m_DeltaToNormalTemperature; // The rate at which player's body goes to default temp
+	public float BaseWork;
 	protected int m_UpdateCounter;
 
 	public TemperatureBody(PlayerEntity player)
 	{
 		super(player, EntityBodyComponent.MAX_PARTS, NORMAL, MIN_COLD, MAX_HOT);
 		Work = 0;
-		WorkRecoverySpeed = 0.1f;
-		m_DeltaToNormalTemperature = 1.0f;
+		BaseWork = 1.0f;
 	}
 
 	@Override
 	public void serverTick()
 	{
-		TickWork();
-
 		// Updates every 64 ticks (3.2 secs)
 		// I was looking into this, and I was not sure if Java's
 		// irem instruction optimized to use AND, I presume it would,
@@ -61,12 +57,6 @@ public class TemperatureBody extends EntityBodyComponent
 			UpdateTemperatures();
 			super.serverTick(); // Checks if dirty and syncs
 		}
-	}
-
-	public void TickWork()
-	{
-		if (Work > 0) Work -= WorkRecoverySpeed;
-		else Work = 0;
 	}
 
 	public void AddWork(float amount)
@@ -104,36 +94,17 @@ public class TemperatureBody extends EntityBodyComponent
 			K = Conduction surfaces (blocks) // TODO Current not used
 			There are other variables, but we don't need those.
 		 */
-		float bodyTemperature = CoreBodyValue + Work;
+		float bodyTemperature = CoreBodyValue + Work + BaseWork;
 		float outsideTemperature = airTemperature + yTemperature;
 		float diff = bodyTemperature - outsideTemperature;
-		float heatLossRate = outsideTemperature + lightTemperature + wind + wetness;
-
-		float changeToNormal = MathHelper.lerp(m_DeltaToNormalTemperature, CoreBodyValue, NORMAL);
-		float temperatureDelta = airTemperature - (Work + changeToNormal);
-		float finalTemperatureDelta = temperatureDelta + (temperatureDelta * MathHelper.clamp(insulation, 0f, 1.0f));
-
-		CoreBodyValue = finalTemperatureDelta;
+		float heatLossRate = diff / 200;
+		//float changeToNormal = MathHelper.lerp(heatLossRate, bodyTemperature, NORMAL);
+		CoreBodyValue -= heatLossRate;
 		IsDirty = true;
 
-		if (FabricLoader.getInstance().isDevelopmentEnvironment())
+		if (FabricLoader.getInstance().isDevelopmentEnvironment() && m_Provider.world.isClient && AdvancedPlayerClient.ShowTemperatureDebug)
 		{
-			AdvancedPlayer.LOGGER.info(String.format("""
-													              
-													 +--------+ Temperature +--------+
-													  	CoreBodyValue = %.2f
-													  	Work = %.2f
-													  	airTemperature = %.2f
-													  	windModifier = %.2f
-													  	wetnessModifier = %.2f
-													  	insulation = %.2f
-													  	windResistance = %.2f,
-													  	changeToNormal = %.2f
-													  	temperatureDelta = %.2f
-													  	finalTemperatureDelta = %.2f
-													  	biome = %s
-													  	climate = %s""", CoreBodyValue, Work, airTemperature, wind, wetness, insulation, windResistance,
-													 changeToNormal, temperatureDelta, finalTemperatureDelta, biomeId, climate));
+			AdvancedPlayerClient.TemperatureDebugWindow.Text = String.format("");
 		}
 	}
 
