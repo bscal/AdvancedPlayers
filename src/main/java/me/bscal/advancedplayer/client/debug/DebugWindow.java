@@ -6,6 +6,7 @@ import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.hud.DebugHud;
 import net.minecraft.client.util.math.MatrixStack;
 
@@ -27,6 +28,11 @@ import java.util.List;
 		if (!Show) return;
 
 		var textRenderer = MinecraftClient.getInstance().textRenderer;
+		RenderTextTopLeft(textRenderer, matrixStack);
+	}
+
+	private void RenderTextTopLeft(TextRenderer textRenderer, MatrixStack matrixStack)
+	{
 		for (int i = 0; i < TemperatureDebugTextList.size(); ++i)
 		{
 			String string = TemperatureDebugTextList.get(i);

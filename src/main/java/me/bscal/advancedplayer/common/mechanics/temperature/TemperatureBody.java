@@ -35,14 +35,15 @@ public class TemperatureBody extends EntityBodyComponent
 	public static final int UPDATES_PER_TICK = 64 - 1; // Must be a power of 2
 
 	public float Work; // Amount of additional work the play is doing. IE running
-	public float BaseWork;
-	protected int m_UpdateCounter;
+	public float LastTemperature;
+	private float m_BaseWork;
+	private int m_UpdateCounter;
 
 	public TemperatureBody(PlayerEntity player)
 	{
 		super(player, EntityBodyComponent.MAX_PARTS, NORMAL, MIN_COLD, MAX_HOT);
 		Work = 0;
-		BaseWork = 1.0f;
+		m_BaseWork = 1.0f;
 	}
 
 	@Override
@@ -94,11 +95,12 @@ public class TemperatureBody extends EntityBodyComponent
 			K = Conduction surfaces (blocks) // TODO Current not used
 			There are other variables, but we don't need those.
 		 */
-		float bodyTemperature = CoreBodyValue + Work + BaseWork;
+		float bodyTemperature = CoreBodyValue + Work + m_BaseWork;
 		float outsideTemperature = airTemperature + yTemperature;
 		float diff = bodyTemperature - outsideTemperature;
 		float heatLossRate = diff / 200;
 		//float changeToNormal = MathHelper.lerp(heatLossRate, bodyTemperature, NORMAL);
+		LastTemperature = CoreBodyValue;
 		CoreBodyValue -= heatLossRate;
 		IsDirty = true;
 
@@ -107,6 +109,7 @@ public class TemperatureBody extends EntityBodyComponent
 			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.clear();
 			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("bodyTemperature = " + bodyTemperature);
 			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("CoreBodyValue = " + CoreBodyValue);
+			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("LastTemperature = " + LastTemperature);
 			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("Work = " + Work);
 			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("outsideTemperature = " + outsideTemperature);
 			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("airTemperature = " + airTemperature);
