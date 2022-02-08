@@ -18,5 +18,4 @@ public class AdvancedPlayerUtils
 		stack.scale(scale, scale, 0);
 		stack.translate(-(x + (width / 2f)), -(y + (height / 2f)), 0);
 	}
-
 }

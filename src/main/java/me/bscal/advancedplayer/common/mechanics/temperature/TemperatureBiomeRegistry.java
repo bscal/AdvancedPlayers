@@ -28,14 +28,23 @@ public class TemperatureBiomeRegistry
 		return BiomesToClimateMap.get(biomeId);
 	}
 
-	public static BiomeClimate Register(Identifier biomeId, BiomeClimate climate)
+	public static class BiomeClimate
 	{
-		BiomesToClimateMap.putIfAbsent(biomeId, climate);
-		return climate;
-	}
+		public TemperatureType Type;
+		public float BaseTemperature;
+		public float[] TemperaturePerSeason;
 
-	public record BiomeClimate(TemperatureType type, float baseTemperature, ClimateTemperatures temperatures)
-	{
+		public float GetCurrentTemperature()
+		{
+			return TemperaturePerSeason[(AdvancedPlayer.IsUsingSeasons()) ? SeasonAPI.getSeasonId() : 0];
+		}
+
+		@Override
+		public String toString()
+		{
+			return String.format("%s, Base: %f.2f,0=%.2f 1=%.2f 2=%.2f 3=%.2f", Type, BaseTemperature, TemperaturePerSeason[0], TemperaturePerSeason[1],
+								 TemperaturePerSeason[2], TemperaturePerSeason[3]);
+		}
 	}
 
 	public enum TemperatureType
@@ -43,51 +52,30 @@ public class TemperatureBiomeRegistry
 		None, Neutral, Hot, Cold
 	}
 
-	public static class ClimateTemperatures
-	{
-		public final float[] Temperatures;
-
-		public ClimateTemperatures(float s0, float s1, float s2, float s3)
-		{
-			Temperatures = new float[] { s0, s1, s2, s3 };
-		}
-
-		public ClimateTemperatures(float s0s1, float s2s3)
-		{
-			Temperatures = new float[] { s0s1, s0s1, s2s3, s2s3 };
-		}
-
-		public float GetTemperatureForSeasonId(int index)
-		{
-			return Temperatures[index];
-		}
-
-		public float GetCurrentTemperature()
-		{
-			return GetTemperatureForSeasonId(GetInternalIndex());
-		}
-
-		@Override
-		public String toString()
-		{
-			return String.format("0=%.2f 1=%.2f 2=%.2f 3=%.2f", Temperatures[0], Temperatures[1], Temperatures[2], Temperatures[3]);
-		}
-
-		private static int GetInternalIndex()
-		{
-			return (AdvancedPlayer.IsUsingSeasons()) ? SeasonAPI.getSeasonId() : 0;
-		}
-	}
-
 	static
 	{
 		BiomesToClimateMap = new Object2ObjectOpenHashMap<>(32);
-		DEFAULT_CLIMATE = new BiomeClimate(TemperatureType.Neutral, 11f, new ClimateTemperatures(15f, 26f, 15f, 0f));
+		DEFAULT_CLIMATE = new BiomeClimate();
+		DEFAULT_CLIMATE.Type = TemperatureType.Neutral;
+		DEFAULT_CLIMATE.BaseTemperature = 11f;
+		DEFAULT_CLIMATE.TemperaturePerSeason = new float[] { 15f, 26f, 15f, 0f };
+
 		BiomesToClimateMap.defaultReturnValue(DEFAULT_CLIMATE);
 
-		COLD_CLIMATE = new BiomeClimate(TemperatureType.Cold, 0f, new ClimateTemperatures(5f, 15f, 5f, -3f));
-		HOT_CLIMATE = new BiomeClimate(TemperatureType.Hot, 26f, new ClimateTemperatures(25f, 34f, 25f, 11f));
-		TROPICAL_CLIMATE = new BiomeClimate(TemperatureType.Hot, 27f, new ClimateTemperatures(27f, 27f));
+		COLD_CLIMATE = new BiomeClimate();
+		COLD_CLIMATE.Type = TemperatureType.Cold;
+		COLD_CLIMATE.BaseTemperature = 0f;
+		COLD_CLIMATE.TemperaturePerSeason = new float[] { 5f, 15f, 5f, -3f };
+
+		HOT_CLIMATE = new BiomeClimate();
+		HOT_CLIMATE.Type = TemperatureType.Hot;
+		HOT_CLIMATE.BaseTemperature = 26f;
+		HOT_CLIMATE.TemperaturePerSeason = new float[] { 25f, 34f, 25f, 11f };
+
+		TROPICAL_CLIMATE = new BiomeClimate();
+		TROPICAL_CLIMATE.Type = TemperatureType.Hot;
+		TROPICAL_CLIMATE.BaseTemperature = 27f;
+		TROPICAL_CLIMATE.TemperaturePerSeason = new float[] { 27f, 27f, 27f, 27f };
 
 		BiomesToClimateMap.putIfAbsent(BiomeKeys.SNOWY_PLAINS.getValue(), COLD_CLIMATE);
 		BiomesToClimateMap.putIfAbsent(BiomeKeys.ICE_SPIKES.getValue(), COLD_CLIMATE);

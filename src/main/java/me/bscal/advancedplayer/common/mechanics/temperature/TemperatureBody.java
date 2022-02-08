@@ -3,6 +3,7 @@ package me.bscal.advancedplayer.common.mechanics.temperature;
 import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
 import me.bscal.advancedplayer.client.AdvancedPlayerClient;
 import me.bscal.advancedplayer.common.components.ComponentManager;
+import me.bscal.advancedplayer.common.components.WetnessComponent;
 import me.bscal.advancedplayer.common.mechanics.body.EntityBodyComponent;
 import me.bscal.advancedplayer.common.mechanics.body.FloatBodyPart;
 import me.bscal.seasons.api.SeasonAPI;
@@ -14,6 +15,7 @@ import net.minecraft.item.Items;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.LightType;
 import net.minecraft.world.biome.Biome;
 
@@ -36,14 +38,13 @@ public class TemperatureBody extends EntityBodyComponent
 
 	public float Work; // Amount of additional work the play is doing. IE running
 	public float LastTemperature;
-	private float m_BaseWork;
+	public float HeatLossRate;
+	private final float m_BaseWork = 1.0f;
 	private int m_UpdateCounter;
 
 	public TemperatureBody(PlayerEntity player)
 	{
 		super(player, EntityBodyComponent.MAX_PARTS, NORMAL, MIN_COLD, MAX_HOT);
-		Work = 0;
-		m_BaseWork = 1.0f;
 	}
 
 	@Override
@@ -72,13 +73,15 @@ public class TemperatureBody extends EntityBodyComponent
 		Identifier biomeId = SeasonAPI.getBiomeId(biome, m_Provider.world);
 		TemperatureBiomeRegistry.BiomeClimate climate = TemperatureBiomeRegistry.BiomesToClimateMap.get(biomeId);
 
-		float airTemperature = climate.temperatures().GetCurrentTemperature();
+		float airTemperature = climate.GetCurrentTemperature();
 		float yTemperature = GetYTemperature(pos);
 		float lightTemperature = GetLightTemperature(m_Provider.world.getLightLevel(LightType.SKY, pos));
 
 		float humidity = 0f;
 		float wind = 0f; // TODO
-		float wetness = ComponentManager.WETNESS.get(m_Provider).Wetness;
+
+		WetnessComponent wetnessComponent = ComponentManager.WETNESS.get(m_Provider);
+		float wetness = wetnessComponent.Wetness;
 
 		float insulation = 0f; // TODO Clothing
 		float windResistance = 0f;
@@ -96,12 +99,22 @@ public class TemperatureBody extends EntityBodyComponent
 			There are other variables, but we don't need those.
 		 */
 		float bodyTemperature = CoreBodyValue + Work + m_BaseWork;
-		float outsideTemperature = airTemperature + yTemperature;
+		float outsideTemperature = airTemperature + yTemperature + lightTemperature;
 		float diff = bodyTemperature - outsideTemperature;
-		float heatLossRate = diff / 200;
-		//float changeToNormal = MathHelper.lerp(heatLossRate, bodyTemperature, NORMAL);
+		HeatLossRate = diff / 200;
 		LastTemperature = CoreBodyValue;
-		CoreBodyValue -= heatLossRate;
+		CoreBodyValue -= HeatLossRate;
+		// Body trying to maintain stable temperature
+		CoreBodyValue = MathHelper.lerp(.05f, CoreBodyValue, NORMAL);
+
+		if (CoreBodyValue > HOT)
+		{
+			// Sweat
+			wetnessComponent.Wetness += 0.1f;
+		}
+		else if (wetnessComponent.Wetness > 0)
+			wetnessComponent.Wetness -= 0.1f;
+
 		IsDirty = true;
 
 		if (FabricLoader.getInstance().isDevelopmentEnvironment() && FabricLoader.getInstance().getEnvironmentType() == EnvType.CLIENT)
@@ -115,18 +128,12 @@ public class TemperatureBody extends EntityBodyComponent
 			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("airTemperature = " + airTemperature);
 			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("yTemperature = " + yTemperature);
 			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("diff = " + diff);
-			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("heatLossRate = " + heatLossRate);
+			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("heatLossRate = " + HeatLossRate);
+			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("wetness = " + wetness);
 			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("biomeId = " + biomeId);
 			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("season = " + SeasonAPI.getSeason(biomeId));
-			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("climateType = " + climate.type());
-			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("climateBaseTemp = " + climate.baseTemperature());
-			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("climateTemperatures = " + climate.temperatures());
+			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("climate = " + climate);
 		}
-	}
-
-	public float CalculateHeatLoss(float temperature, float humidity, float wetness, float wind, float insulation, float windResistence)
-	{
-		return 0;
 	}
 
 	public float GetYTemperature(BlockPos pos)
@@ -150,9 +157,7 @@ public class TemperatureBody extends EntityBodyComponent
 
 	public float GetLightTemperature(int lightLevel)
 	{
-		// Light Level 0 - 15
-		//TODO
-		return 0f;
+		return MathHelper.lerp(lightLevel / 15f, -4.5f, 4.5f);
 	}
 
 	@Override
@@ -174,6 +179,8 @@ public class TemperatureBody extends EntityBodyComponent
 	{
 		super.writeToNbt(nbt);
 		nbt.putFloat("Work", Work);
+		nbt.putFloat("LastTemperature", LastTemperature);
+		nbt.putFloat("HeatLossRate", HeatLossRate);
 	}
 
 	@Override
@@ -181,6 +188,8 @@ public class TemperatureBody extends EntityBodyComponent
 	{
 		super.readFromNbt(nbt);
 		Work = nbt.getFloat("Work");
+		LastTemperature = nbt.getFloat("LastTemperature");
+		HeatLossRate = nbt.getFloat("HeatLossRate");
 	}
 
 	public static class TemperatureClothing
