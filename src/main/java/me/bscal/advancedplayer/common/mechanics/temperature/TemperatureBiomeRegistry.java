@@ -14,6 +14,12 @@ public class TemperatureBiomeRegistry
 
 	public static final Object2ObjectOpenHashMap<Identifier, BiomeClimate> BiomesToClimateMap;
 
+	public static final float EVEN_BODY_TEMP = 21f;
+	public static final float COOLING_BODY_TEMP = 19f;
+	public static final float WARMING_BODY_TEMP = 23f;
+	public static final float FREEZING_BODY_TEMP = 0f;
+	public static final float BURNING_BODY_TEMP = 37f;
+
 	public static final float BASE_TEMP = 15f;
 	public static final float BASE_HOT_TEMP = 25f;
 	public static final float BASE_COLD_TEMP = 0f;
@@ -26,6 +32,11 @@ public class TemperatureBiomeRegistry
 	{
 		Identifier biomeId = world.getRegistryManager().get(Registry.BIOME_KEY).getId(biome);
 		return BiomesToClimateMap.get(biomeId);
+	}
+
+	public static boolean IsNormalTemperature(float t)
+	{
+		return t < WARMING_BODY_TEMP && t > COOLING_BODY_TEMP;
 	}
 
 	public static class BiomeClimate

@@ -58,12 +58,11 @@ import net.minecraft.util.Identifier;
 
 	private void DrawChange(MatrixStack matrixStack, int x, int y, TemperatureBody temperatureBody)
 	{
-		float diff = temperatureBody.HeatLossRate;
-		boolean isBigDiff = Math.abs(diff) >= 0.05f;
-
 		Sprite sprite;
-		if (diff > 0.01f) sprite = AdvancedPlayerClient.AtlasTexture.getSprite(AdvancedPlayerClient.TEXTURE_UP_CARROT);
-		else if (diff < -0.01f) sprite = AdvancedPlayerClient.AtlasTexture.getSprite(AdvancedPlayerClient.TEXTURE_DOWN_CARROT);
+		if (TemperatureBody.TemperatureShiftType.IsWarming(temperatureBody.ShiftType))
+			sprite = AdvancedPlayerClient.AtlasTexture.getSprite(AdvancedPlayerClient.TEXTURE_UP_CARROT);
+		else if (TemperatureBody.TemperatureShiftType.IsCooling(temperatureBody.ShiftType))
+			sprite = AdvancedPlayerClient.AtlasTexture.getSprite(AdvancedPlayerClient.TEXTURE_DOWN_CARROT);
 		else return;
 
 		RenderSystem.setShaderColor(1, 0, 0, 1);
@@ -77,7 +76,7 @@ import net.minecraft.util.Identifier;
 		matrixStack.scale(.5f, .5f, 0);
 		matrixStack.translate(-xx - .5f, -yy, 0);
 		InGameHud.drawSprite(matrixStack, x, y, 0, 16, 16, sprite);
-		if (isBigDiff) InGameHud.drawSprite(matrixStack, x, y - 6, 0, 16, 16, sprite);
+		if (TemperatureBody.TemperatureShiftType.IsBigDifference(temperatureBody.ShiftType)) InGameHud.drawSprite(matrixStack, x, y - 6, 0, 16, 16, sprite);
 		matrixStack.pop();
 	}
 }

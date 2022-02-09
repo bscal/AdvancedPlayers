@@ -37,9 +37,10 @@ public class TemperatureBody extends EntityBodyComponent
 	public static final int UPDATES_PER_TICK = 64 - 1; // Must be a power of 2
 
 	public float Work; // Amount of additional work the play is doing. IE running
-	public float LastTemperature;
 	public float HeatLossRate;
-	private final float m_BaseWork = 1.0f;
+	public float BodyTemperature;
+	public float OutSideTemperature;
+	public TemperatureShiftType ShiftType;
 	private int m_UpdateCounter;
 
 	public TemperatureBody(PlayerEntity player)
@@ -76,14 +77,11 @@ public class TemperatureBody extends EntityBodyComponent
 		float airTemperature = climate.GetCurrentTemperature();
 		float yTemperature = GetYTemperature(pos);
 		float lightTemperature = GetLightTemperature(m_Provider.world.getLightLevel(LightType.SKY, pos));
-
-		float humidity = 0f;
-		float wind = 0f; // TODO
-
+		float humidity = 0.5f;
+		float wind = 3f;
 		WetnessComponent wetnessComponent = ComponentManager.WETNESS.get(m_Provider);
 		float wetness = wetnessComponent.Wetness;
-
-		float insulation = 0f; // TODO Clothing
+		float insulation = 0f;
 		float windResistance = 0f;
 
 		/*
@@ -98,38 +96,40 @@ public class TemperatureBody extends EntityBodyComponent
 			K = Conduction surfaces (blocks) // TODO Current not used
 			There are other variables, but we don't need those.
 		 */
-		float bodyTemperature = CoreBodyValue + Work + m_BaseWork;
-		float outsideTemperature = airTemperature + yTemperature + lightTemperature;
-		float diff = bodyTemperature - outsideTemperature;
-		HeatLossRate = diff / 200;
-		LastTemperature = CoreBodyValue;
-		CoreBodyValue -= HeatLossRate;
-		// Body trying to maintain stable temperature
-		CoreBodyValue = MathHelper.lerp(.05f, CoreBodyValue, NORMAL);
+		float m_BaseWork = 1.0f;
+		BodyTemperature = CoreBodyValue + Work + m_BaseWork;
+		OutSideTemperature = airTemperature + yTemperature + lightTemperature - (wind - windResistance);
+		float diff = BodyTemperature - OutSideTemperature;
+		ShiftType = TemperatureShiftType.TypeForTemp(OutSideTemperature);
 
-		if (CoreBodyValue > HOT)
-		{
-			// Sweat
-			wetnessComponent.Wetness += 0.1f;
-		}
-		else if (wetnessComponent.Wetness > 0)
-			wetnessComponent.Wetness -= 0.1f;
+		HeatLossRate = MathHelper.lerp(insulation, diff / 200, .0f);
+		// Body moving towards the outside temperature. Not an expert at thermodynamics but this seems like a
+		// decent system even though not 100% accurate
+		CoreBodyValue = MathHelper.lerp(HeatLossRate, CoreBodyValue, OutSideTemperature);
+		// Body trying to maintain stable temperature. This is a little simpler to do
+		// then combined into the previous lerp because outside temp is usually always colder than you.
+		float delta = MathHelper.lerp(humidity, .1f, .0f);
+		CoreBodyValue = MathHelper.lerp(delta, CoreBodyValue, NORMAL);
+
+		if (CoreBodyValue >= HOT) wetnessComponent.Wetness += 0.1f; // Sweat
+		else if (wetnessComponent.Wetness > 0) wetnessComponent.Wetness -= 0.1f;
 
 		IsDirty = true;
 
 		if (FabricLoader.getInstance().isDevelopmentEnvironment() && FabricLoader.getInstance().getEnvironmentType() == EnvType.CLIENT)
 		{
 			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.clear();
-			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("bodyTemperature = " + bodyTemperature);
 			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("CoreBodyValue = " + CoreBodyValue);
-			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("LastTemperature = " + LastTemperature);
+			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("BodyTemperature = " + BodyTemperature);
 			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("Work = " + Work);
-			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("outsideTemperature = " + outsideTemperature);
+			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("outsideTemperature = " + OutSideTemperature);
 			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("airTemperature = " + airTemperature);
 			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("yTemperature = " + yTemperature);
+			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("lightTemperature = " + lightTemperature);
 			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("diff = " + diff);
 			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("heatLossRate = " + HeatLossRate);
 			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("wetness = " + wetness);
+			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("TemperatureShiftType = " + ShiftType);
 			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("biomeId = " + biomeId);
 			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("season = " + SeasonAPI.getSeason(biomeId));
 			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("climate = " + climate);
@@ -179,8 +179,10 @@ public class TemperatureBody extends EntityBodyComponent
 	{
 		super.writeToNbt(nbt);
 		nbt.putFloat("Work", Work);
-		nbt.putFloat("LastTemperature", LastTemperature);
 		nbt.putFloat("HeatLossRate", HeatLossRate);
+		nbt.putFloat("BodyTemperature", BodyTemperature);
+		nbt.putFloat("OutSideTemperature", OutSideTemperature);
+		nbt.putInt("ShiftType", ShiftType.ordinal());
 	}
 
 	@Override
@@ -188,8 +190,10 @@ public class TemperatureBody extends EntityBodyComponent
 	{
 		super.readFromNbt(nbt);
 		Work = nbt.getFloat("Work");
-		LastTemperature = nbt.getFloat("LastTemperature");
 		HeatLossRate = nbt.getFloat("HeatLossRate");
+		BodyTemperature = nbt.getFloat("BodyTemperature");
+		OutSideTemperature = nbt.getFloat("OutSideTemperature");
+		ShiftType = TemperatureShiftType.values()[nbt.getInt("ShiftType")];
 	}
 
 	public static class TemperatureClothing
@@ -208,6 +212,45 @@ public class TemperatureBody extends EntityBodyComponent
 
 	public record TemperatureClothingData(float insulation, float windResistance)
 	{
+	}
+
+	public enum TemperatureShiftType
+	{
+		Normal(TemperatureBiomeRegistry.EVEN_BODY_TEMP), Cooling(TemperatureBiomeRegistry.COOLING_BODY_TEMP), Warming(
+			TemperatureBiomeRegistry.WARMING_BODY_TEMP), Freezing(TemperatureBiomeRegistry.FREEZING_BODY_TEMP), Burning(
+			TemperatureBiomeRegistry.BURNING_BODY_TEMP);
+
+		public final float Temperature;
+
+		TemperatureShiftType(float temperature)
+		{
+			Temperature = temperature;
+		}
+
+		public static TemperatureShiftType TypeForTemp(float temperature)
+		{
+			if (temperature < Freezing.Temperature) return Freezing;
+			else if (temperature < Cooling.Temperature) return Cooling;
+			else if (temperature > Burning.Temperature) return Burning;
+			else if (temperature > Warming.Temperature) return Warming;
+			return Normal;
+		}
+
+		public static boolean IsWarming(TemperatureShiftType type)
+		{
+			return type == Cooling || type == Freezing;
+		}
+
+		public static boolean IsCooling(TemperatureShiftType type)
+		{
+			return type == Warming || type == Burning;
+		}
+
+		public static boolean IsBigDifference(TemperatureShiftType type)
+		{
+			return type == Freezing || type == Burning;
+		}
+
 	}
 
 }
