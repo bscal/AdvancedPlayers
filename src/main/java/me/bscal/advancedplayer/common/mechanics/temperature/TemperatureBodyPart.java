@@ -29,10 +29,10 @@ public class TemperatureBodyPart implements BodyPart
 		for (int slotId : SlotsForBodyPart)
 		{
 			ItemStack item = provider.getInventory().getArmorStack(slotId);
-			TemperatureBody.TemperatureClothingData clothing = TemperatureBody.TemperatureClothing.CLOTHING_MAP.get(item.getItem());
+			TemperatureClothing.ClothingData clothing = TemperatureClothing.CLOTHING_MAP.get(item.getItem());
 			if (clothing == null) return;
-			Insulation += clothing.insulation();
-			WindResistance += clothing.windResistance();
+			Insulation += clothing.Insulation;
+			WindResistance += clothing.WindResistance;
 		}
 	}
 

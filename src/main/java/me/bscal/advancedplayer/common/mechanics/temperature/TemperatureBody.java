@@ -1,6 +1,5 @@
 package me.bscal.advancedplayer.common.mechanics.temperature;
 
-import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
 import me.bscal.advancedplayer.client.AdvancedPlayerClient;
 import me.bscal.advancedplayer.common.components.ComponentManager;
 import me.bscal.advancedplayer.common.components.WetnessComponent;
@@ -10,8 +9,6 @@ import me.bscal.seasons.api.SeasonAPI;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.Item;
-import net.minecraft.item.Items;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
@@ -40,6 +37,8 @@ public class TemperatureBody extends EntityBodyComponent
 	public float HeatLossRate;
 	public float BodyTemperature;
 	public float OutSideTemperature;
+	public float Insulation;
+	public float WindResistance;
 	public TemperatureShiftType ShiftType;
 	private int m_UpdateCounter;
 
@@ -73,7 +72,6 @@ public class TemperatureBody extends EntityBodyComponent
 		Biome biome = m_Provider.world.getBiome(pos);
 		Identifier biomeId = SeasonAPI.getBiomeId(biome, m_Provider.world);
 		TemperatureBiomeRegistry.BiomeClimate climate = TemperatureBiomeRegistry.BiomesToClimateMap.get(biomeId);
-
 		float airTemperature = climate.GetCurrentTemperature();
 		float yTemperature = GetYTemperature(pos);
 		float lightTemperature = GetLightTemperature(m_Provider.world.getLightLevel(LightType.SKY, pos));
@@ -81,37 +79,27 @@ public class TemperatureBody extends EntityBodyComponent
 		float wind = 3f;
 		WetnessComponent wetnessComponent = ComponentManager.WETNESS.get(m_Provider);
 		float wetness = wetnessComponent.Wetness;
-		float insulation = 0f;
-		float windResistance = 0f;
+		TemperatureClothing.ClothingData clothingData = GetProviderClothingData();
 
-		/*
-			Body wants to be at NORMAL temperature.
-			Body creates Work which increases temperature. Heat Production = M - W (We do not calculate M)
-			Temperature goes down over time - Climate effects this
-			If > NORMAL = your hot, < NORMAL = your cold.
-			Heat Loss = R + C + E + K where:
-			R = Radiation (heat loss or gain) between skin, clothing, or surfaces (includes sun). At rest, nude, in 21C environment, heat loss = 60%
-			C = Convection (Air near body) natural - air moving from body, forced - wind. At rest = 18%
-			E = Evaporation // TODO Current not used
-			K = Conduction surfaces (blocks) // TODO Current not used
-			There are other variables, but we don't need those.
-		 */
 		float m_BaseWork = 1.0f;
 		BodyTemperature = CoreBodyValue + Work + m_BaseWork;
-		OutSideTemperature = airTemperature + yTemperature + lightTemperature - (wind - windResistance);
+		OutSideTemperature = airTemperature + yTemperature + lightTemperature - (wind - clothingData.WindResistance);
 		float diff = BodyTemperature - OutSideTemperature;
 		ShiftType = TemperatureShiftType.TypeForTemp(OutSideTemperature);
 
-		HeatLossRate = MathHelper.lerp(insulation, diff / 200, .0f);
+		// 100% insulation would mean you lose 0 heat, 0% you lose all the heat;
+		HeatLossRate = MathHelper.lerp(clothingData.Insulation, diff / 200, .0f);
+		// Since Work is temporary
+		Work -= HeatLossRate;
 		// Body moving towards the outside temperature. Not an expert at thermodynamics but this seems like a
 		// decent system even though not 100% accurate
 		CoreBodyValue = MathHelper.lerp(HeatLossRate, CoreBodyValue, OutSideTemperature);
-		// Body trying to maintain stable temperature. This is a little simpler to do
-		// then combined into the previous lerp because outside temp is usually always colder than you.
-		float delta = MathHelper.lerp(humidity, .1f, .0f);
+		// 100% would not allow evaporation to take place. This does not matter if it is cold.
+		float delta = TemperatureShiftType.IsWarming(ShiftType) ? MathHelper.lerp(humidity, .1f, .0f) : .1f;
 		CoreBodyValue = MathHelper.lerp(delta, CoreBodyValue, NORMAL);
 
-		if (CoreBodyValue >= HOT) wetnessComponent.Wetness += 0.1f; // Sweat
+		// Sweat
+		if (CoreBodyValue >= HOT) wetnessComponent.Wetness += 0.1f;
 		else if (wetnessComponent.Wetness > 0) wetnessComponent.Wetness -= 0.1f;
 
 		IsDirty = true;
@@ -160,6 +148,23 @@ public class TemperatureBody extends EntityBodyComponent
 		return MathHelper.lerp(lightLevel / 15f, -4.5f, 4.5f);
 	}
 
+	public TemperatureClothing.ClothingData GetProviderClothingData()
+	{
+		// TODO for now we hardcore getting armor of player
+		TemperatureClothing.ClothingData data = new TemperatureClothing.ClothingData();
+		m_Provider.getArmorItems().forEach(itemStack -> {
+			var clothing = TemperatureClothing.CLOTHING_MAP.get(itemStack.getItem());
+			if (clothing != null)
+			{
+				data.Insulation += clothing.Insulation;
+				data.WindResistance += clothing.WindResistance;
+			}
+		});
+		data.Insulation = MathHelper.clamp(data.Insulation, 0f, 1f);
+		data.WindResistance = MathHelper.clamp(data.WindResistance, 0f, 1f);
+		return data;
+	}
+
 	@Override
 	public void PopulateBodyMap()
 	{
@@ -194,24 +199,6 @@ public class TemperatureBody extends EntityBodyComponent
 		BodyTemperature = nbt.getFloat("BodyTemperature");
 		OutSideTemperature = nbt.getFloat("OutSideTemperature");
 		ShiftType = TemperatureShiftType.values()[nbt.getInt("ShiftType")];
-	}
-
-	public static class TemperatureClothing
-	{
-		public static final Reference2ObjectOpenHashMap<Item, TemperatureClothingData> CLOTHING_MAP = new Reference2ObjectOpenHashMap<>();
-
-		public static void LoadClothingMap()
-		{
-			CLOTHING_MAP.clear();
-			CLOTHING_MAP.put(Items.LEATHER_BOOTS, new TemperatureClothingData(0.3f, 0.3f));
-			CLOTHING_MAP.put(Items.LEATHER_LEGGINGS, new TemperatureClothingData(0.3f, 0.3f));
-			CLOTHING_MAP.put(Items.LEATHER_CHESTPLATE, new TemperatureClothingData(0.3f, 0.3f));
-			CLOTHING_MAP.put(Items.LEATHER_HELMET, new TemperatureClothingData(0.3f, 0.3f));
-		}
-	}
-
-	public record TemperatureClothingData(float insulation, float windResistance)
-	{
 	}
 
 	public enum TemperatureShiftType
@@ -254,3 +241,17 @@ public class TemperatureBody extends EntityBodyComponent
 	}
 
 }
+
+/*
+	Saved this for reference.
+			Body wants to be at NORMAL temperature.
+			Body creates Work which increases temperature. Heat Production = M - W (We do not calculate M)
+			Temperature goes down over time - Climate effects this
+			If > NORMAL = your hot, < NORMAL = your cold.
+			Heat Loss = R + C + E + K where:
+			R = Radiation (heat loss or gain) between skin, clothing, or surfaces (includes sun). At rest, nude, in 21C environment, heat loss = 60%
+			C = Convection (Air near body) natural - air moving from body, forced - wind. At rest = 18%
+			E = Evaporation
+			K = Conduction surfaces (blocks)
+			There are other variables, but we don't need those.
+ */
