@@ -42,8 +42,8 @@ import net.minecraft.util.Identifier;
 		var client = MinecraftClient.getInstance();
 		if (client.player == null) return;
 
-		int x = client.getWindow().getScaledWidth() / 2 - ICON_OFFSET;
-		int y = client.getWindow().getScaledHeight() / 2;
+		int x = client.getWindow().getScaledWidth() / 2 - 140;
+		int y = client.getWindow().getScaledHeight() - 36;
 
 		RenderSystem.setShaderTexture(0, AdvancedPlayerClient.AtlasTexture.getId());
 
@@ -60,23 +60,29 @@ import net.minecraft.util.Identifier;
 	{
 		Sprite sprite;
 		if (TemperatureBody.TemperatureShiftType.IsWarming(temperatureBody.ShiftType))
+		{
 			sprite = AdvancedPlayerClient.AtlasTexture.getSprite(AdvancedPlayerClient.TEXTURE_UP_CARROT);
+			RenderSystem.setShaderColor(1, 0, 0, 1);
+		}
 		else if (TemperatureBody.TemperatureShiftType.IsCooling(temperatureBody.ShiftType))
+		{
 			sprite = AdvancedPlayerClient.AtlasTexture.getSprite(AdvancedPlayerClient.TEXTURE_DOWN_CARROT);
+			RenderSystem.setShaderColor(0, 0, 1, 1);
+		}
 		else return;
 
-		RenderSystem.setShaderColor(1, 0, 0, 1);
-
 		// matrix magic to scale without effecting position;
-		y -= 4;
 		double xx = x + 8;
-		double yy = y + 8;
+		double yy = y;
 		matrixStack.push();
 		matrixStack.translate(xx, yy, 0);
 		matrixStack.scale(.5f, .5f, 0);
 		matrixStack.translate(-xx - .5f, -yy, 0);
 		InGameHud.drawSprite(matrixStack, x, y, 0, 16, 16, sprite);
-		if (TemperatureBody.TemperatureShiftType.IsBigDifference(temperatureBody.ShiftType)) InGameHud.drawSprite(matrixStack, x, y - 6, 0, 16, 16, sprite);
+		if (TemperatureBody.TemperatureShiftType.IsBigDifference(temperatureBody.ShiftType))
+		{
+			InGameHud.drawSprite(matrixStack, x, y - 6, 0, 16, 16, sprite);
+		}
 		matrixStack.pop();
 	}
 }

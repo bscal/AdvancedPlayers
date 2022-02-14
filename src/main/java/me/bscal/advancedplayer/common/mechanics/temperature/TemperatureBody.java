@@ -80,17 +80,19 @@ public class TemperatureBody extends EntityBodyComponent
 		WetnessComponent wetnessComponent = ComponentManager.WETNESS.get(m_Provider);
 		float wetness = wetnessComponent.Wetness;
 		TemperatureClothing.ClothingData clothingData = GetProviderClothingData();
+		Insulation = clothingData.Insulation;
+		WindResistance = clothingData.WindResistance;
 
-		float m_BaseWork = 1.0f;
+		float m_BaseWork = 1.0f; // Players body always doing some work.
 		BodyTemperature = CoreBodyValue + Work + m_BaseWork;
-		OutSideTemperature = airTemperature + yTemperature + lightTemperature - (wind - clothingData.WindResistance);
+		OutSideTemperature = airTemperature + yTemperature + lightTemperature - (wind - WindResistance);
 		float diff = BodyTemperature - OutSideTemperature;
 		ShiftType = TemperatureShiftType.TypeForTemp(OutSideTemperature);
 
 		// 100% insulation would mean you lose 0 heat, 0% you lose all the heat;
-		HeatLossRate = MathHelper.lerp(clothingData.Insulation, diff / 200, .0f);
+		HeatLossRate = MathHelper.lerp(Insulation, diff / 200, .0f);
 		// Since Work is temporary
-		Work -= HeatLossRate;
+		Work = MathHelper.clamp(Work - HeatLossRate, 0, 10f);
 		// Body moving towards the outside temperature. Not an expert at thermodynamics but this seems like a
 		// decent system even though not 100% accurate
 		CoreBodyValue = MathHelper.lerp(HeatLossRate, CoreBodyValue, OutSideTemperature);
@@ -115,6 +117,7 @@ public class TemperatureBody extends EntityBodyComponent
 			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("yTemperature = " + yTemperature);
 			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("lightTemperature = " + lightTemperature);
 			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("diff = " + diff);
+			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("delta = " + delta);
 			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("heatLossRate = " + HeatLossRate);
 			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("wetness = " + wetness);
 			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("TemperatureShiftType = " + ShiftType);
@@ -225,12 +228,12 @@ public class TemperatureBody extends EntityBodyComponent
 
 		public static boolean IsWarming(TemperatureShiftType type)
 		{
-			return type == Cooling || type == Freezing;
+			return type == Warming || type == Burning;
 		}
 
 		public static boolean IsCooling(TemperatureShiftType type)
 		{
-			return type == Warming || type == Burning;
+			return type == Cooling || type == Freezing;
 		}
 
 		public static boolean IsBigDifference(TemperatureShiftType type)
