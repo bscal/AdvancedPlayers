@@ -9,7 +9,6 @@ import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
 import net.minecraft.nbt.NbtList;
 import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.util.math.MathHelper;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Objects;
@@ -27,50 +26,35 @@ public abstract class EntityBodyComponent implements ComponentV3, AutoSyncedComp
 	public static final int RIGHT_FOOT = 8;//"RFoot";
 	public static final int MAX_PARTS = 9;
 
-	public float CoreBodyValue;
-	public final float MinCoreBodyValue, MaxCoreBodyValue, DefaultBodyValue;
-	public final BodyPart[] BodyParts;
+	public BodyPart[] BodyParts;
 	public boolean IsDirty;
 
 	protected final LivingEntity m_Provider;
 
-	public EntityBodyComponent(@NotNull LivingEntity provider, int numOfBodyParts, float defaultBodyValue, float minCoreBodyValue, float maxCoreBodyValue)
+	public EntityBodyComponent(@NotNull LivingEntity provider, int numOfBodyParts)
 	{
 		Objects.requireNonNull(provider, "EntityBody LivingEntity is null");
 		if (numOfBodyParts < 1) throw new IllegalArgumentException("EntityBody does not have any body parts. numOfBodyParts");
-		if (defaultBodyValue < minCoreBodyValue || defaultBodyValue > maxCoreBodyValue)
-			throw new IllegalArgumentException("EntityBody defaultBodyValue is outside min/max bounds.");
-		if (minCoreBodyValue > maxCoreBodyValue) throw new IllegalArgumentException("EntityBody minCoreBodyValue is > maxCoreBodyValue");
 
 		m_Provider = provider;
-		CoreBodyValue = defaultBodyValue;
-		DefaultBodyValue = defaultBodyValue;
-		MinCoreBodyValue = minCoreBodyValue;
-		MaxCoreBodyValue = maxCoreBodyValue;
 		BodyParts = new BodyPart[numOfBodyParts];
-		PopulateBodyMap();
-		IsDirty = true;
-	}
-
-	public void SetCoreValueClampAndSync(float value)
-	{
-		CoreBodyValue = MathHelper.clamp(value, MinCoreBodyValue, MaxCoreBodyValue);
+		CreateBodyParts();
 		IsDirty = true;
 	}
 
 	public void Reset()
 	{
-		CoreBodyValue = DefaultBodyValue;
-		PopulateBodyMap();
+		CreateBodyParts();
 		IsDirty = true;
 	}
 
-	public abstract void PopulateBodyMap();
+	public abstract void CreateBodyParts();
+
+	public abstract void Sync();
 
 	@Override
 	public void writeToNbt(NbtCompound nbt)
 	{
-		nbt.putFloat("CoreBodyValue", CoreBodyValue);
 		NbtList parts = new NbtList();
 		for (var part : BodyParts)
 			parts.add(part.ToNbt());
@@ -80,7 +64,6 @@ public abstract class EntityBodyComponent implements ComponentV3, AutoSyncedComp
 	@Override
 	public void readFromNbt(NbtCompound nbt)
 	{
-		CoreBodyValue = nbt.getFloat("CoreBodyValue");
 		// TODO better safer serialization
 		var nbtBodyParts = nbt.getList("BodyParts", NbtElement.COMPOUND_TYPE);
 		for (int i = 0; i < nbtBodyParts.size(); i++)
@@ -101,7 +84,20 @@ public abstract class EntityBodyComponent implements ComponentV3, AutoSyncedComp
 		if (IsDirty)
 		{
 			IsDirty = false;
-			ComponentManager.BODY_TEMPERATURE.sync(m_Provider);
+			Sync();
 		}
+	}
+
+	public enum BodyPartTypes
+	{
+		Head,
+		Chest,
+		LeftArm,
+		RightArm,
+		Groin,
+		LeftLeg,
+		RightLeg,
+		LeftFoot,
+		RightFoot;
 	}
 }

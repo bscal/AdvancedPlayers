@@ -1,8 +1,8 @@
 package me.bscal.advancedplayer.common.mechanics.temperature;
 
 import me.bscal.advancedplayer.client.AdvancedPlayerClient;
+import me.bscal.advancedplayer.common.components.PlayerStatsComponent;
 import me.bscal.advancedplayer.common.components.ComponentManager;
-import me.bscal.advancedplayer.common.components.WetnessComponent;
 import me.bscal.advancedplayer.common.mechanics.body.EntityBodyComponent;
 import me.bscal.advancedplayer.common.mechanics.body.FloatBodyPart;
 import me.bscal.seasons.api.SeasonAPI;
@@ -33,6 +33,7 @@ public class TemperatureBody extends EntityBodyComponent
 
 	public static final int UPDATES_PER_TICK = 64 - 1; // Must be a power of 2
 
+	public float CoreBodyTemperature;
 	public float Work; // Amount of additional work the play is doing. IE running
 	public float HeatLossRate;
 	public float BodyTemperature;
@@ -44,7 +45,7 @@ public class TemperatureBody extends EntityBodyComponent
 
 	public TemperatureBody(PlayerEntity player)
 	{
-		super(player, EntityBodyComponent.MAX_PARTS, NORMAL, MIN_COLD, MAX_HOT);
+		super(player, BodyPartTypes.values().length);
 	}
 
 	@Override
@@ -77,14 +78,14 @@ public class TemperatureBody extends EntityBodyComponent
 		float lightTemperature = GetLightTemperature(m_Provider.world.getLightLevel(LightType.SKY, pos));
 		float humidity = 0.5f;
 		float wind = 3f;
-		WetnessComponent wetnessComponent = ComponentManager.WETNESS.get(m_Provider);
-		float wetness = wetnessComponent.Wetness;
+		PlayerStatsComponent playerStatsComponent = ComponentManager.PLAYER_STATS.get(m_Provider);
+		float wetness = playerStatsComponent.Wetness;
 		TemperatureClothing.ClothingData clothingData = GetProviderClothingData();
 		Insulation = clothingData.Insulation;
 		WindResistance = clothingData.WindResistance;
 
 		float m_BaseWork = 1.0f; // Players body always doing some work.
-		BodyTemperature = CoreBodyValue + Work + m_BaseWork;
+		BodyTemperature = CoreBodyTemperature + Work + m_BaseWork;
 		OutSideTemperature = airTemperature + yTemperature + lightTemperature - (wind - WindResistance);
 		float diff = BodyTemperature - OutSideTemperature;
 		ShiftType = TemperatureShiftType.TypeForTemp(OutSideTemperature);
@@ -95,21 +96,21 @@ public class TemperatureBody extends EntityBodyComponent
 		Work = MathHelper.clamp(Work - HeatLossRate, 0, 10f);
 		// Body moving towards the outside temperature. Not an expert at thermodynamics but this seems like a
 		// decent system even though not 100% accurate
-		CoreBodyValue = MathHelper.lerp(HeatLossRate, CoreBodyValue, OutSideTemperature);
+		CoreBodyTemperature = MathHelper.lerp(HeatLossRate, CoreBodyTemperature, OutSideTemperature);
 		// 100% would not allow evaporation to take place. This does not matter if it is cold.
 		float delta = TemperatureShiftType.IsWarming(ShiftType) ? MathHelper.lerp(humidity, .1f, .0f) : .1f;
-		CoreBodyValue = MathHelper.lerp(delta, CoreBodyValue, NORMAL);
+		CoreBodyTemperature = MathHelper.lerp(delta, CoreBodyTemperature, NORMAL);
 
 		// Sweat
-		if (CoreBodyValue >= HOT) wetnessComponent.Wetness += 0.1f;
-		else if (wetnessComponent.Wetness > 0) wetnessComponent.Wetness -= 0.1f;
+		if (CoreBodyTemperature >= HOT) playerStatsComponent.Wetness += 0.1f;
+		else if (playerStatsComponent.Wetness > 0) playerStatsComponent.Wetness -= 0.1f;
 
 		IsDirty = true;
 
 		if (FabricLoader.getInstance().isDevelopmentEnvironment() && FabricLoader.getInstance().getEnvironmentType() == EnvType.CLIENT)
 		{
 			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.clear();
-			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("CoreBodyValue = " + CoreBodyValue);
+			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("CoreBodyTemperature = " + CoreBodyTemperature);
 			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("BodyTemperature = " + BodyTemperature);
 			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("Work = " + Work);
 			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("outsideTemperature = " + OutSideTemperature);
@@ -169,7 +170,7 @@ public class TemperatureBody extends EntityBodyComponent
 	}
 
 	@Override
-	public void PopulateBodyMap()
+	public void CreateBodyParts()
 	{
 		BodyParts[EntityBodyComponent.HEAD] = new FloatBodyPart(NORMAL, MIN_COLD, MAX_HOT, 1.5f);
 		BodyParts[EntityBodyComponent.CHEST] = new FloatBodyPart(NORMAL, MIN_COLD, MAX_HOT, 1.0f);
@@ -180,6 +181,12 @@ public class TemperatureBody extends EntityBodyComponent
 		BodyParts[EntityBodyComponent.RIGHT_LEG] = new FloatBodyPart(NORMAL, MIN_COLD, MAX_HOT, .75f);
 		BodyParts[EntityBodyComponent.LEFT_FOOT] = new FloatBodyPart(NORMAL, MIN_COLD, MAX_HOT, 0.5f);
 		BodyParts[EntityBodyComponent.RIGHT_FOOT] = new FloatBodyPart(NORMAL, MIN_COLD, MAX_HOT, 0.5f);
+	}
+
+	@Override
+	public void Sync()
+	{
+		ComponentManager.BODY_TEMPERATURE.sync(m_Provider);
 	}
 
 	@Override
