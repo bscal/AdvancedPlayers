@@ -50,7 +50,7 @@ import net.minecraft.util.Identifier;
 		InGameHud.drawSprite(matrixStack, x, y, 0, 16, 32, Thermometer);
 
 		var temperatureBody = ComponentManager.BODY_TEMPERATURE.get(client.player);
-		var spriteId = SetTemperature(temperatureBody.CoreBodyValue);
+		var spriteId = SetTemperature(temperatureBody.CoreBodyTemperature);
 		InGameHud.drawSprite(matrixStack, x, y, 0, 16, 32, AdvancedPlayerClient.AtlasTexture.getSprite(spriteId));
 
 		DrawChange(matrixStack, x, y, temperatureBody);

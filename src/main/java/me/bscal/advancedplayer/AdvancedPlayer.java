@@ -1,5 +1,7 @@
 package me.bscal.advancedplayer;
 
+import com.artemis.WorldConfiguration;
+import com.artemis.WorldConfigurationBuilder;
 import me.bscal.advancedplayer.common.components.ComponentManager;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
