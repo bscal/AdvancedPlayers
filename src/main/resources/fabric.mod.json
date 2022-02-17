@@ -26,7 +26,8 @@
   "custom": {
     "cardinal-components": [
       "advancedplayer:body_temperature",
-      "advancedplayer:wetness"
+      "advancedplayer:player",
+      "advancedplayer:nutrition"
     ]
   },
   "depends": {

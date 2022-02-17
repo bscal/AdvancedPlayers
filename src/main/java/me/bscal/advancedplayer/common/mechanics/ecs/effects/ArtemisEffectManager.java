@@ -8,11 +8,17 @@ import com.artemis.utils.IntBag;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import me.bscal.advancedplayer.AdvancedPlayer;
 import me.bscal.advancedplayer.common.mechanics.ecs.effects.components.RefPlayer;
+import me.bscal.advancedplayer.common.mechanics.ecs.effects.systems.BleedSystem;
+import me.bscal.advancedplayer.common.mechanics.ecs.effects.systems.DebugSystem;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.server.world.ServerWorld;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.WorldSavePath;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.file.Path;
 
 public class ArtemisEffectManager
 {
@@ -22,21 +28,32 @@ public class ArtemisEffectManager
 	public static final Reference2IntOpenHashMap<PlayerEntity> PlayerToEntityId = new Reference2IntOpenHashMap<>();
 
 	public static final String SaveExtension = ".bin";
-	public static String SavePath;
+	public static File SavePath;
 
-	public static void Init()
+	public static Archetype Archetype;
+
+	public static void Init(MinecraftServer server)
 	{
-		WorldConfiguration worldConfig = new WorldConfigurationBuilder().with(SerializationManager).build();
+		WorldConfiguration worldConfig = new WorldConfigurationBuilder().with(SerializationManager, new BleedSystem(), new DebugSystem()).build();
+		worldConfig.register("server", server);
 
 		World = new World(worldConfig);
 
 		SerializationManager.setSerializer(new KryoArtemisSerializer(World));
 
-		SavePath = WorldSavePath.ROOT + "/data/entities/";
+		SavePath = new File(server.getSavePath(WorldSavePath.ROOT) + "/data/entities/");
+
+		Archetype = new ArchetypeBuilder().add(RefPlayer.class).build(World);
 	}
 
 	public static void Tick()
 	{
+		/*
+			Not really sure what to put for as the delta. It wouldn't really make sense
+			to use Minecraft's renderer's tickDelta. So Minecraft runs at 20 ticks per second
+			the delta kind of already is there? Possible to just use 1f for 1 tick though too,
+			which I do like.
+		 */
 		World.setDelta(1f / 20f);
 		World.process();
 	}
@@ -50,19 +67,20 @@ public class ArtemisEffectManager
 	{
 		Entity entity = World.getEntity(GetPlayersEntityId(player));
 		entity.edit().add(component);
-
 	}
 
-	public static void LoadPlayer(ServerWorld serverWorld, PlayerEntity player)
+	public static void LoadOrCreatePlayer(MinecraftServer server, PlayerEntity player)
 	{
 		int entityId = -1;
-		File file = new File( SavePath + player.getUuid() + SaveExtension);
+
+		File file = new File(SavePath, player.getUuid() + SaveExtension);
 		if (file.exists())
 		{
 			try
 			{
 				FileInputStream fis = new FileInputStream(file);
 				var savedData = SerializationManager.load(fis, SaveFileFormat.class);
+				entityId = savedData.entities.get(0);
 				fis.close();
 			}
 			catch (IOException e)
@@ -70,26 +88,24 @@ public class ArtemisEffectManager
 				e.printStackTrace();
 			}
 		}
-
-		Archetype archetype = new ArchetypeBuilder().add(RefPlayer.class).build(World);
-		entityId = World.create(archetype);
-
+		else
+		{
+			entityId = World.create(Archetype);
+		}
 		Entity entity = World.getEntity(entityId);
-		entity.getComponent(RefPlayer.class).PlayerEntity = player;
-
+		entity.getComponent(RefPlayer.class).PlayerUuid = player.getUuid();
 		PlayerToEntityId.put(player, entityId);
-		
 	}
 
-	public static void SaveAndRemovePlayer(PlayerEntity player)
+	public static void SaveAndRemovePlayer(MinecraftServer server, PlayerEntity player)
 	{
 		int entityId = PlayerToEntityId.removeInt(player);
 
 		IntBag entities = new IntBag(1);
 		entities.add(entityId);
 
-		File file = new File( SavePath + player.getUuid() + SaveExtension);
-		file.mkdirs();
+		File file = new File(SavePath, player.getUuid() + SaveExtension);
+		file.getParentFile().mkdirs();
 
 		try
 		{

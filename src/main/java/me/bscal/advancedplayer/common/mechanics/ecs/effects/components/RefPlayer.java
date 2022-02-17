@@ -1,11 +1,13 @@
 package me.bscal.advancedplayer.common.mechanics.ecs.effects.components;
 
 import com.artemis.Component;
-import net.minecraft.entity.player.PlayerEntity;
+import com.artemis.annotations.Transient;
 
-public class RefPlayer extends Component
+import java.util.UUID;
+
+@Transient public class RefPlayer extends Component
 {
 
-	transient public PlayerEntity PlayerEntity;
+	public UUID PlayerUuid;
 
 }
