@@ -69,6 +69,17 @@ public class ArtemisEffectManager
 		entity.edit().add(component);
 	}
 
+	public static void AddComponent(int entityId, Component component)
+	{
+		Entity entity = World.getEntity(entityId);
+		entity.edit().add(component);
+	}
+
+	public static void AddComponent(int entityId, Component component, boolean stack)
+	{
+
+	}
+
 	public static void LoadOrCreatePlayer(MinecraftServer server, PlayerEntity player)
 	{
 		int entityId = -1;

@@ -15,8 +15,7 @@ import net.minecraft.server.network.ServerPlayerEntity;
 
 	private ComponentMapper<Bleed> Bleeds;
 	private ComponentMapper<RefPlayer> Players;
-	@Wire(name = "server")
-	private MinecraftServer Server;
+	@Wire(name = "server") private MinecraftServer Server;
 
 	@Override
 	protected void process(int entityId)
@@ -31,11 +30,21 @@ import net.minecraft.server.network.ServerPlayerEntity;
 			return;
 		}
 
-		float damage = Bleed.Damage * Bleed.Stacks;
-		Player.damage(DamageSource.GENERIC, damage);
+		var it = Bleed.Durations.iterator();
+		while (it.hasNext())
+		{
+			int i = it.nextIndex();
+			Player.damage(DamageSource.GENERIC, Bleed.Damage);
 
-		Bleed.Duration--;
-		if (Bleed.Duration < 1) Bleeds.remove(entityId);
+			int duration = Bleed.Durations.getInt(i) - 1;
+			if (duration < 1) it.remove();
+			else Bleed.Durations.set(i, duration);
+		}
+
+		if (Bleed.Durations.isEmpty())
+		{
+			Bleeds.remove(entityId);
+		}
 	}
 
 	private boolean IsSuccess(ServerPlayerEntity p)
