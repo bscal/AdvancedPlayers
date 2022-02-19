@@ -45,6 +45,7 @@ dependencies {
 
     modImplementation(include("net.onedaybeard.artemis:artemis-odb:2.2.0"))
     modImplementation(include("net.onedaybeard.artemis:artemis-odb-serializer-kryo:2.2.0"))
+    modImplementation(include("net.mostlyoriginal.artemis-odb:contrib-eventbus:2.5.0"))
 }
 
 processResources {

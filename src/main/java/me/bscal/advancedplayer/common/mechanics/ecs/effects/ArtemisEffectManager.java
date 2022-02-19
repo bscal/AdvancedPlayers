@@ -8,22 +8,24 @@ import com.artemis.utils.IntBag;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import me.bscal.advancedplayer.AdvancedPlayer;
 import me.bscal.advancedplayer.common.mechanics.ecs.effects.components.RefPlayer;
+import me.bscal.advancedplayer.common.mechanics.ecs.effects.components.StackableComponent;
 import me.bscal.advancedplayer.common.mechanics.ecs.effects.systems.BleedSystem;
 import me.bscal.advancedplayer.common.mechanics.ecs.effects.systems.DebugSystem;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.WorldSavePath;
+import net.mostlyoriginal.api.event.common.EventSystem;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.file.Path;
 
 public class ArtemisEffectManager
 {
 
 	public static World World;
+	public static EventSystem EventSystem;
 	public static final WorldSerializationManager SerializationManager = new WorldSerializationManager();
 	public static final Reference2IntOpenHashMap<PlayerEntity> PlayerToEntityId = new Reference2IntOpenHashMap<>();
 
@@ -34,7 +36,8 @@ public class ArtemisEffectManager
 
 	public static void Init(MinecraftServer server)
 	{
-		WorldConfiguration worldConfig = new WorldConfigurationBuilder().with(SerializationManager, new BleedSystem(), new DebugSystem()).build();
+		EventSystem = new EventSystem();
+		WorldConfiguration worldConfig = new WorldConfigurationBuilder().with(SerializationManager, EventSystem, new BleedSystem(), new DebugSystem()).build();
 		worldConfig.register("server", server);
 
 		World = new World(worldConfig);
@@ -80,6 +83,28 @@ public class ArtemisEffectManager
 
 	}
 
+	public static Component AddEffect(PlayerEntity player, Class<? extends Component> componentClazz)
+	{
+		Entity entity = World.getEntity(GetPlayersEntityId(player));
+		Component component = entity.getComponent(componentClazz);
+		if (component == null) component = entity.edit().create(componentClazz);
+		if (component instanceof StackableComponent stackableComponent)
+		{
+			stackableComponent.OnNewStack();
+		}
+		return component;
+	}
+
+	public static void AddStackToComponent(int entityId, Class<? extends Component> componentClazz)
+	{
+		Entity entity = World.getEntity(entityId);
+		Component component = entity.getComponent(componentClazz);
+		if (component instanceof StackableComponent stackableComponent)
+		{
+			stackableComponent.OnNewStack();
+		}
+	}
+
 	public static void LoadOrCreatePlayer(MinecraftServer server, PlayerEntity player)
 	{
 		int entityId = -1;
@@ -104,7 +129,7 @@ public class ArtemisEffectManager
 			entityId = World.create(Archetype);
 		}
 		Entity entity = World.getEntity(entityId);
-		entity.getComponent(RefPlayer.class).PlayerUuid = player.getUuid();
+		entity.getComponent(RefPlayer.class).Player = player;
 		PlayerToEntityId.put(player, entityId);
 	}
 

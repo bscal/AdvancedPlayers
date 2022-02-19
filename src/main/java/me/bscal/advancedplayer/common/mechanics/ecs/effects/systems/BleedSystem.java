@@ -4,11 +4,14 @@ import com.artemis.ComponentMapper;
 import com.artemis.annotations.All;
 import com.artemis.annotations.Wire;
 import com.artemis.systems.IteratingSystem;
+import me.bscal.advancedplayer.AdvancedPlayer;
 import me.bscal.advancedplayer.common.mechanics.ecs.effects.components.Bleed;
 import me.bscal.advancedplayer.common.mechanics.ecs.effects.components.RefPlayer;
+import me.bscal.advancedplayer.common.mechanics.ecs.effects.events.PlayerDeath;
 import net.minecraft.entity.damage.DamageSource;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.network.ServerPlayerEntity;
+import net.mostlyoriginal.api.event.common.Subscribe;
 
 @All({ Bleed.class, RefPlayer.class }) public class BleedSystem extends IteratingSystem
 {
@@ -21,7 +24,7 @@ import net.minecraft.server.network.ServerPlayerEntity;
 	protected void process(int entityId)
 	{
 		var Bleed = Bleeds.get(entityId);
-		var Player = Server.getPlayerManager().getPlayer(Players.get(entityId).PlayerUuid);
+		var Player = Players.get(entityId).Player;
 
 		if (!IsSuccess(Player)) return;
 		if (!Player.isAlive())
@@ -47,8 +50,14 @@ import net.minecraft.server.network.ServerPlayerEntity;
 		}
 	}
 
-	private boolean IsSuccess(ServerPlayerEntity p)
+	private boolean IsSuccess(PlayerEntity p)
 	{
 		return p != null && !p.isCreative() && !p.isSpectator();
+	}
+
+	@Subscribe
+	public void OnPlayerDeath(PlayerDeath event)
+	{
+		AdvancedPlayer.LOGGER.info("*** TEST! ***");
 	}
 }
