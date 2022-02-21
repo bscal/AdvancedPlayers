@@ -2,12 +2,12 @@ package me.bscal.advancedplayer;
 
 import me.bscal.advancedplayer.common.components.ComponentManager;
 import me.bscal.advancedplayer.common.mechanics.ecs.effects.ArtemisEffectManager;
-import me.bscal.advancedplayer.common.mechanics.ecs.effects.events.PlayerCopy;
-import me.bscal.advancedplayer.common.mechanics.ecs.effects.events.PlayerDeath;
-import me.bscal.advancedplayer.common.mechanics.ecs.effects.events.PlayerRespawn;
+import me.bscal.advancedplayer.common.mechanics.ecs.effects.events.PlayerCopyEvent;
+import me.bscal.advancedplayer.common.mechanics.ecs.effects.events.PlayerDeathEvent;
+import me.bscal.advancedplayer.common.mechanics.ecs.effects.events.PlayerRespawnEvent;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.entity.event.v1.ServerEntityCombatEvents;
 import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerChunkEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
@@ -49,7 +49,7 @@ public class AdvancedPlayer implements ModInitializer
 		});
 
 		ServerPlayerEvents.ALLOW_DEATH.register((player, damageSource, damageAmount) -> {
-			var event = new PlayerDeath();
+			var event = new PlayerDeathEvent();
 			event.Player = player;
 			event.DamageSource = damageSource;
 			event.DamageAmount = damageAmount;
@@ -58,7 +58,7 @@ public class AdvancedPlayer implements ModInitializer
 		});
 
 		ServerPlayerEvents.COPY_FROM.register((oldPlayer, newPlayer, alive) -> {
-			var event = new PlayerCopy();
+			var event = new PlayerCopyEvent();
 			event.OldPlayer = oldPlayer;
 			event.NewPlayer = newPlayer;
 			event.Alive = alive;
@@ -66,7 +66,7 @@ public class AdvancedPlayer implements ModInitializer
 		});
 
 		ServerPlayerEvents.AFTER_RESPAWN.register((oldPlayer, newPlayer, alive) -> {
-			var event = new PlayerRespawn();
+			var event = new PlayerRespawnEvent();
 			event.OldPlayer = oldPlayer;
 			event.NewPlayer = newPlayer;
 			event.Alive = alive;

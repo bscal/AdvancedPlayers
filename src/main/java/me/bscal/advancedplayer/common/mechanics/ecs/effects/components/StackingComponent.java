@@ -8,9 +8,12 @@ public abstract class StackingComponent extends Component implements StackableCo
 	public byte Stacks;
 
 	@Override
-	public void OnNewStack()
+	public void OnGainStack()
 	{
 		Stacks++;
 	}
+
+	@Override
+	public void OnLoseStack() { Stacks--; }
 
 }

@@ -3,7 +3,7 @@ package me.bscal.advancedplayer.common.mechanics.ecs.effects.events;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.mostlyoriginal.api.event.common.Event;
 
-public class PlayerCopy implements Event
+public class PlayerRespawnEvent implements Event
 {
 
 	public ServerPlayerEntity OldPlayer;

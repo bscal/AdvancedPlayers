@@ -10,6 +10,10 @@ package me.bscal.advancedplayer.common.mechanics.ecs.effects.components;
 public interface StackableComponent
 {
 
-	void OnNewStack();
+	void OnGainStack();
+
+	void OnLoseStack();
+
+	boolean IsEmpty();
 
 }

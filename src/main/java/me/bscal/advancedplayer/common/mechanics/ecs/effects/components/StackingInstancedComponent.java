@@ -10,8 +10,15 @@ public abstract class StackingInstancedComponent extends Component implements St
 	public int InstanceDuration;
 
 	@Override
-	public void OnNewStack()
+	public void OnGainStack()
 	{
 		Durations.add(InstanceDuration);
 	}
+
+	@Override
+	public void OnLoseStack() { Durations.removeInt(0); }
+
+	@Override
+	public boolean IsEmpty() { return Durations.isEmpty(); }
+
 }

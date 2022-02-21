@@ -4,7 +4,7 @@ import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.mostlyoriginal.api.event.common.Event;
 
-public class PlayerDeath implements Event
+public class PlayerDeathEvent implements Event
 {
 
 	public ServerPlayerEntity Player;

@@ -7,7 +7,9 @@ import com.artemis.systems.IteratingSystem;
 import me.bscal.advancedplayer.AdvancedPlayer;
 import me.bscal.advancedplayer.common.mechanics.ecs.effects.components.Bleed;
 import me.bscal.advancedplayer.common.mechanics.ecs.effects.components.RefPlayer;
-import me.bscal.advancedplayer.common.mechanics.ecs.effects.events.PlayerDeath;
+import me.bscal.advancedplayer.common.mechanics.ecs.effects.events.AddBuffEvent;
+import me.bscal.advancedplayer.common.mechanics.ecs.effects.events.PlayerDeathEvent;
+import me.bscal.advancedplayer.common.mechanics.ecs.effects.events.RemoveBuffEvent;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.MinecraftServer;
@@ -44,7 +46,7 @@ import net.mostlyoriginal.api.event.common.Subscribe;
 			else Bleed.Durations.set(i, duration);
 		}
 
-		if (Bleed.Durations.isEmpty())
+		if (Bleed.IsEmpty())
 		{
 			Bleeds.remove(entityId);
 		}
@@ -56,7 +58,7 @@ import net.mostlyoriginal.api.event.common.Subscribe;
 	}
 
 	@Subscribe
-	public void OnPlayerDeath(PlayerDeath event)
+	public void OnPlayerDeath(PlayerDeathEvent event)
 	{
 		AdvancedPlayer.LOGGER.info("*** TEST! ***");
 	}

@@ -66,43 +66,45 @@ public class ArtemisEffectManager
 		return PlayerToEntityId.getInt(player);
 	}
 
-	public static void AddComponent(PlayerEntity player, Component component)
-	{
-		Entity entity = World.getEntity(GetPlayersEntityId(player));
-		entity.edit().add(component);
-	}
-
-	public static void AddComponent(int entityId, Component component)
+	public static Component AddComponent(int entityId, Class<? extends Component> clazz)
 	{
 		Entity entity = World.getEntity(entityId);
-		entity.edit().add(component);
-	}
-
-	public static void AddComponent(int entityId, Component component, boolean stack)
-	{
-
-	}
-
-	public static Component AddEffect(PlayerEntity player, Class<? extends Component> componentClazz)
-	{
-		Entity entity = World.getEntity(GetPlayersEntityId(player));
-		Component component = entity.getComponent(componentClazz);
-		if (component == null) component = entity.edit().create(componentClazz);
-		if (component instanceof StackableComponent stackableComponent)
+		Component component = entity.getComponent(clazz);
+		if (component == null)
 		{
-			stackableComponent.OnNewStack();
+			component = entity.edit().create(clazz);
+			if (component instanceof StackableComponent stackable) stackable.OnGainStack();
 		}
 		return component;
 	}
 
-	public static void AddStackToComponent(int entityId, Class<? extends Component> componentClazz)
+	public static Component AddComponent(PlayerEntity player, Class<? extends Component> clazz)
+	{
+		return AddComponent(PlayerToEntityId.getInt(player.getUuid()), clazz);
+	}
+
+	public static Component RemoveStack(int entityId, Class<? extends Component> clazz)
 	{
 		Entity entity = World.getEntity(entityId);
-		Component component = entity.getComponent(componentClazz);
-		if (component instanceof StackableComponent stackableComponent)
+		Component component = entity.getComponent(clazz);
+		if (component instanceof StackableComponent stackable)
 		{
-			stackableComponent.OnNewStack();
+			stackable.OnLoseStack();
+			if (stackable.IsEmpty()) entity.edit().remove(clazz);
 		}
+		else entity.edit().remove(clazz);
+		return component;
+	}
+
+	public static Component RemoveStack(PlayerEntity player, Class<? extends Component> clazz)
+	{
+		return AddComponent(PlayerToEntityId.getInt(player.getUuid()), clazz);
+	}
+
+	public static void RemoveComponent(PlayerEntity player, Class<? extends Component> clazz)
+	{
+		Entity entity = World.getEntity(PlayerToEntityId.getInt(player.getUuid()));
+		entity.edit().remove(clazz);
 	}
 
 	public static void LoadOrCreatePlayer(MinecraftServer server, PlayerEntity player)

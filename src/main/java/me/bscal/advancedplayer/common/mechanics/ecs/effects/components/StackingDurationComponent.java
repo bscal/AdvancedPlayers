@@ -9,7 +9,7 @@ public abstract class StackingDurationComponent extends Component implements Sta
 	public int DurationPerStack;
 
 	@Override
-	public void OnNewStack()
+	public void OnGainStack()
 	{
 		Duration += DurationPerStack;
 	}
