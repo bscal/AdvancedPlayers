@@ -1,4 +1,4 @@
-package me.bscal.advancedplayer.common.mechanics.ecs.effects;
+package me.bscal.advancedplayer.common.mechanics.ecs;
 
 import com.artemis.*;
 import com.artemis.io.KryoArtemisSerializer;
@@ -7,40 +7,40 @@ import com.artemis.managers.WorldSerializationManager;
 import com.artemis.utils.IntBag;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import me.bscal.advancedplayer.AdvancedPlayer;
-import me.bscal.advancedplayer.common.mechanics.ecs.effects.components.RefPlayer;
-import me.bscal.advancedplayer.common.mechanics.ecs.effects.components.StackableComponent;
-import me.bscal.advancedplayer.common.mechanics.ecs.effects.systems.BleedSystem;
-import me.bscal.advancedplayer.common.mechanics.ecs.effects.systems.DebugSystem;
+import me.bscal.advancedplayer.common.mechanics.ecs.components.RefPlayer;
+import me.bscal.advancedplayer.common.mechanics.ecs.components.StackableComponent;
+import me.bscal.advancedplayer.common.mechanics.ecs.systems.BleedSystem;
+import me.bscal.advancedplayer.common.mechanics.ecs.systems.DebugSystem;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.WorldSavePath;
-import net.mostlyoriginal.api.event.common.EventSystem;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
-public class ArtemisEffectManager
+public final class ECSManager
 {
 
+	public static final String SAVE_EXTENSION = ".bin";
+	public static final float DELTA = 1f / 20f; // Minecraft runs 20 ticks per seconds, so I don't think there is a delta?
+
 	public static World World;
-	public static EventSystem EventSystem;
-	public static final WorldSerializationManager SerializationManager = new WorldSerializationManager();
-	public static final Reference2IntOpenHashMap<PlayerEntity> PlayerToEntityId = new Reference2IntOpenHashMap<>();
-
-	public static final String SaveExtension = ".bin";
+	public static WorldSerializationManager SerializationManager;
+	public static Reference2IntOpenHashMap<PlayerEntity> PlayerToEntityId;
 	public static File SavePath;
-
 	public static Archetype Archetype;
 
 	public static void Init(MinecraftServer server)
 	{
-		EventSystem = new EventSystem();
-		WorldConfiguration worldConfig = new WorldConfigurationBuilder().with(SerializationManager, EventSystem, new BleedSystem(), new DebugSystem()).build();
+		SerializationManager = new WorldSerializationManager();
+		PlayerToEntityId = new Reference2IntOpenHashMap<>();
+		WorldConfiguration worldConfig = new WorldConfigurationBuilder().with(SerializationManager, new BleedSystem(), new DebugSystem()).build();
 		worldConfig.register("server", server);
 
 		World = new World(worldConfig);
+		World.setDelta(DELTA);
 
 		SerializationManager.setSerializer(new KryoArtemisSerializer(World));
 
@@ -57,7 +57,7 @@ public class ArtemisEffectManager
 			the delta kind of already is there? Possible to just use 1f for 1 tick though too,
 			which I do like.
 		 */
-		World.setDelta(1f / 20f);
+
 		World.process();
 	}
 
@@ -111,7 +111,7 @@ public class ArtemisEffectManager
 	{
 		int entityId = -1;
 
-		File file = new File(SavePath, player.getUuid() + SaveExtension);
+		File file = new File(SavePath, player.getUuid() + SAVE_EXTENSION);
 		if (file.exists())
 		{
 			try
@@ -142,7 +142,7 @@ public class ArtemisEffectManager
 		IntBag entities = new IntBag(1);
 		entities.add(entityId);
 
-		File file = new File(SavePath, player.getUuid() + SaveExtension);
+		File file = new File(SavePath, player.getUuid() + SAVE_EXTENSION);
 		file.getParentFile().mkdirs();
 
 		try

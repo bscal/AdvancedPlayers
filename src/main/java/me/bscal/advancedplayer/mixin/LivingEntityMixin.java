@@ -25,7 +25,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 		event.Amount = amount;
 		event.Entity = (LivingEntity) (Object) this;
 
-		DamageEvents.BeforeReductionEvent.invoker().OnBeforeReductions(event);
+		DamageEvents.BEFORE_REDUCTIONS.invoker().OnBeforeReductions(event);
 		if (event.ShouldCancel) ci.cancel();
 	}
 
@@ -38,7 +38,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 		event.Amount = amount;
 		event.Entity = (LivingEntity) (Object) this;
 
-		DamageEvents.ReceivedEvent.invoker().OnReceivedDamage(event);
+		DamageEvents.RECEIVED.invoker().OnReceivedDamage(event);
 		if (event.ShouldCancel) ci.cancel();
 	}
 
@@ -49,7 +49,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 		m_BlockEvent.AmountAfterBlocking = 0.0f;
 		m_BlockEvent.Amount = amount;
 		m_BlockEvent.Entity = (LivingEntity) (Object) this;
-		DamageEvents.BlockedEvent.invoker().OnBlocked(m_BlockEvent);
+		DamageEvents.BLOCKED.invoker().OnBlocked(m_BlockEvent);
 	}
 
 	@ModifyVariable(method = "damage", argsOnly = true, ordinal = 0, at = @At(value = "STORE", ordinal = 0))

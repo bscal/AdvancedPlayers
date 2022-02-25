@@ -8,7 +8,7 @@ import net.minecraft.util.ActionResult;
 
 public class DamageEvents
 {
-	public static final Event<BeforeReductionsCB> BeforeReductionEvent = EventFactory.createArrayBacked(BeforeReductionsCB.class, listeners -> (event) -> {
+	public static final Event<BeforeReductionsCB> BEFORE_REDUCTIONS = EventFactory.createArrayBacked(BeforeReductionsCB.class, listeners -> (event) -> {
 		for (var listener : listeners)
 		{
 			var result = listener.OnBeforeReductions(event);
@@ -22,7 +22,7 @@ public class DamageEvents
 		ActionResult OnBeforeReductions(BeforeReductions event);
 	}
 
-	public static final Event<ReceivedCB> ReceivedEvent = EventFactory.createArrayBacked(ReceivedCB.class, listeners -> (event) -> {
+	public static final Event<ReceivedCB> RECEIVED = EventFactory.createArrayBacked(ReceivedCB.class, listeners -> (event) -> {
 		for (var listener : listeners)
 		{
 			var result = listener.OnReceivedDamage(event);
@@ -36,7 +36,7 @@ public class DamageEvents
 		ActionResult OnReceivedDamage(Received event);
 	}
 
-	public static final Event<BlockedCB> BlockedEvent = EventFactory.createArrayBacked(BlockedCB.class, listeners -> (event) -> {
+	public static final Event<BlockedCB> BLOCKED = EventFactory.createArrayBacked(BlockedCB.class, listeners -> (event) -> {
 		for (var listener : listeners)
 		{
 			var result = listener.OnBlocked(event);

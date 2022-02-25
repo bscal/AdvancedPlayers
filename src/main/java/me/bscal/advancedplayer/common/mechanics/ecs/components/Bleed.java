@@ -1,4 +1,4 @@
-package me.bscal.advancedplayer.common.mechanics.ecs.effects.components;
+package me.bscal.advancedplayer.common.mechanics.ecs.components;
 
 public class Bleed extends StackingInstancedComponent
 {

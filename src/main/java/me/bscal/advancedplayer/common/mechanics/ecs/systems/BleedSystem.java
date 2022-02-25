@@ -1,19 +1,18 @@
-package me.bscal.advancedplayer.common.mechanics.ecs.effects.systems;
+package me.bscal.advancedplayer.common.mechanics.ecs.systems;
 
 import com.artemis.ComponentMapper;
 import com.artemis.annotations.All;
 import com.artemis.annotations.Wire;
 import com.artemis.systems.IteratingSystem;
-import me.bscal.advancedplayer.AdvancedPlayer;
-import me.bscal.advancedplayer.common.mechanics.ecs.effects.components.Bleed;
-import me.bscal.advancedplayer.common.mechanics.ecs.effects.components.RefPlayer;
-import me.bscal.advancedplayer.common.mechanics.ecs.effects.events.PlayerDeathEvent;
+import me.bscal.advancedplayer.common.mechanics.ecs.components.Bleed;
+import me.bscal.advancedplayer.common.mechanics.ecs.components.RefPlayer;
+import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.MinecraftServer;
-import net.mostlyoriginal.api.event.common.Subscribe;
+import net.minecraft.server.network.ServerPlayerEntity;
 
-@All({ Bleed.class, RefPlayer.class }) public class BleedSystem extends IteratingSystem
+@All({ Bleed.class, RefPlayer.class }) public class BleedSystem extends IteratingSystem implements ServerPlayerEvents.AfterRespawn
 {
 
 	private ComponentMapper<Bleed> Bleeds;
@@ -55,9 +54,17 @@ import net.mostlyoriginal.api.event.common.Subscribe;
 		return p != null && !p.isCreative() && !p.isSpectator();
 	}
 
-	@Subscribe
-	public void OnPlayerDeath(PlayerDeathEvent event)
+	@Override
+	public void afterRespawn(ServerPlayerEntity oldPlayer, ServerPlayerEntity newPlayer, boolean alive)
 	{
-		AdvancedPlayer.LOGGER.info("*** TEST! ***");
+
+	}
+
+	@Override
+	protected void initialize()
+	{
+		super.initialize();
+
+		ServerPlayerEvents.AFTER_RESPAWN.register(this);
 	}
 }

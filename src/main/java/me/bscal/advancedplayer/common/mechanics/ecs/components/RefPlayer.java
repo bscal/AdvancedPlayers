@@ -1,4 +1,4 @@
-package me.bscal.advancedplayer.common.mechanics.ecs.effects.components;
+package me.bscal.advancedplayer.common.mechanics.ecs.components;
 
 import com.artemis.Component;
 import com.artemis.annotations.Transient;

@@ -1,18 +1,12 @@
 package me.bscal.advancedplayer;
 
 import me.bscal.advancedplayer.common.components.ComponentManager;
-import me.bscal.advancedplayer.common.mechanics.ecs.effects.ArtemisEffectManager;
-import me.bscal.advancedplayer.common.mechanics.ecs.effects.events.PlayerCopyEvent;
-import me.bscal.advancedplayer.common.mechanics.ecs.effects.events.PlayerDeathEvent;
-import me.bscal.advancedplayer.common.mechanics.ecs.effects.events.PlayerRespawnEvent;
+import me.bscal.advancedplayer.common.mechanics.ecs.ECSManager;
 import net.fabricmc.api.ModInitializer;
-import net.fabricmc.fabric.api.entity.event.v1.ServerEntityCombatEvents;
-import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.server.MinecraftServer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -22,62 +16,36 @@ public class AdvancedPlayer implements ModInitializer
 	public static final String MOD_ID = "advancedplayer";
 	public static final Logger LOGGER = LogManager.getLogger("AdvancedPlayer");
 
-	private static boolean SEASONS_ENABLED;
+	private static boolean SeasonsEnabled;
 
 	@Override
 	public void onInitialize()
 	{
-		SEASONS_ENABLED = FabricLoader.getInstance().isModLoaded("seasons");
-		LOGGER.info("MCSeasons status: Loaded = " + SEASONS_ENABLED);
+		SeasonsEnabled = FabricLoader.getInstance().isModLoaded("seasons");
+		LOGGER.info("MCSeasons status: Loaded = " + SeasonsEnabled);
 
 		ServerLifecycleEvents.SERVER_STARTING.register(server -> {
-			ArtemisEffectManager.Init(server);
+			ECSManager.Init(server);
 		});
 
 		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
-			ArtemisEffectManager.LoadOrCreatePlayer(server, handler.player);
+			ECSManager.LoadOrCreatePlayer(server, handler.player);
 
 			LOGGER.info(handler.player.getDisplayName().asString() + " has connected");
 			ComponentManager.BODY_TEMPERATURE.get(handler.player);
 		});
 
 		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
-			ArtemisEffectManager.SaveAndRemovePlayer(server, handler.player);
+			ECSManager.SaveAndRemovePlayer(server, handler.player);
 		});
 
 		ServerTickEvents.END_SERVER_TICK.register(server -> {
-			ArtemisEffectManager.Tick();
+			ECSManager.Tick();
 		});
-
-		ServerPlayerEvents.ALLOW_DEATH.register((player, damageSource, damageAmount) -> {
-			var event = new PlayerDeathEvent();
-			event.Player = player;
-			event.DamageSource = damageSource;
-			event.DamageAmount = damageAmount;
-			ArtemisEffectManager.EventSystem.dispatch(event);
-			return !event.Cancel;
-		});
-
-		ServerPlayerEvents.COPY_FROM.register((oldPlayer, newPlayer, alive) -> {
-			var event = new PlayerCopyEvent();
-			event.OldPlayer = oldPlayer;
-			event.NewPlayer = newPlayer;
-			event.Alive = alive;
-			ArtemisEffectManager.EventSystem.dispatch(event);
-		});
-
-		ServerPlayerEvents.AFTER_RESPAWN.register((oldPlayer, newPlayer, alive) -> {
-			var event = new PlayerRespawnEvent();
-			event.OldPlayer = oldPlayer;
-			event.NewPlayer = newPlayer;
-			event.Alive = alive;
-			ArtemisEffectManager.EventSystem.dispatch(event);
-		});
-
 	}
 
 	public static boolean IsUsingSeasons()
 	{
-		return SEASONS_ENABLED;
+		return SeasonsEnabled;
 	}
 }

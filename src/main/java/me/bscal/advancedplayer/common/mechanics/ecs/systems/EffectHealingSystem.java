@@ -1,10 +1,10 @@
-package me.bscal.advancedplayer.common.mechanics.ecs.effects.systems;
+package me.bscal.advancedplayer.common.mechanics.ecs.systems;
 
 import com.artemis.ComponentMapper;
 import com.artemis.Entity;
 import com.artemis.annotations.All;
 import com.artemis.systems.EntityProcessingSystem;
-import me.bscal.advancedplayer.common.mechanics.ecs.effects.components.EffectRemover;
+import me.bscal.advancedplayer.common.mechanics.ecs.components.EffectRemover;
 
 @All(EffectRemover.class) public class EffectHealingSystem extends EntityProcessingSystem
 {
