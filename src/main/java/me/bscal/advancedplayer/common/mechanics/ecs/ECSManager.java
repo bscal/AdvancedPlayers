@@ -5,20 +5,23 @@ import com.artemis.io.KryoArtemisSerializer;
 import com.artemis.io.SaveFileFormat;
 import com.artemis.managers.WorldSerializationManager;
 import com.artemis.utils.IntBag;
+import io.netty.buffer.Unpooled;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import me.bscal.advancedplayer.AdvancedPlayer;
-import me.bscal.advancedplayer.common.mechanics.ecs.components.RefPlayer;
-import me.bscal.advancedplayer.common.mechanics.ecs.components.StackableComponent;
+import me.bscal.advancedplayer.common.mechanics.ecs.components.*;
 import me.bscal.advancedplayer.common.mechanics.ecs.systems.BleedSystem;
 import me.bscal.advancedplayer.common.mechanics.ecs.systems.DebugSystem;
+import me.bscal.advancedplayer.common.mechanics.ecs.systems.SyncSystem;
+import me.bscal.advancedplayer.common.mechanics.ecs.systems.TemperatureSystem;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.network.PacketByteBuf;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.WorldSavePath;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
 
 public final class ECSManager
 {
@@ -36,17 +39,25 @@ public final class ECSManager
 	{
 		SerializationManager = new WorldSerializationManager();
 		PlayerToEntityId = new Reference2IntOpenHashMap<>();
-		WorldConfiguration worldConfig = new WorldConfigurationBuilder().with(SerializationManager, new BleedSystem(), new DebugSystem()).build();
-		worldConfig.register("server", server);
 
+		WorldConfiguration worldConfig = new WorldConfigurationBuilder().with(SerializationManager, new TemperatureSystem(), new BleedSystem(),
+				new DebugSystem(), new SyncSystem()).build();
+		worldConfig.register("server", server);
 		World = new World(worldConfig);
 		World.setDelta(DELTA);
-
 		SerializationManager.setSerializer(new KryoArtemisSerializer(World));
 
 		SavePath = new File(server.getSavePath(WorldSavePath.ROOT) + "/data/entities/");
+		Archetype = new ArchetypeBuilder().add(Temperature.class, Wetness.class, Sync.class).build(World);
+	}
 
-		Archetype = new ArchetypeBuilder().add(RefPlayer.class).build(World);
+	public static void InitClient()
+	{
+		SerializationManager = new WorldSerializationManager();
+		WorldConfiguration worldConfig = new WorldConfigurationBuilder().with(SerializationManager).build();
+		World = new World(worldConfig);
+		World.setDelta(DELTA);
+		SerializationManager.setSerializer(new KryoArtemisSerializer(World));
 	}
 
 	public static void Tick()
@@ -131,7 +142,9 @@ public final class ECSManager
 			entityId = World.create(Archetype);
 		}
 		Entity entity = World.getEntity(entityId);
-		entity.getComponent(RefPlayer.class).Player = player;
+		RefPlayer refPlayer = new RefPlayer();
+		refPlayer.Player = player;
+		entity.edit().add(refPlayer);
 		PlayerToEntityId.put(player, entityId);
 	}
 
@@ -157,7 +170,47 @@ public final class ECSManager
 			e.printStackTrace();
 		}
 
+		// Makes sure to set Player to null
+		World.getEntity(entityId).getComponent(RefPlayer.class).Player = null;
 		World.delete(entityId);
+	}
+
+	public static void SyncEntity(ServerPlayerEntity player)
+	{
+		int entityId = PlayerToEntityId.removeInt(player);
+		IntBag entities = new IntBag(1);
+		entities.add(entityId);
+
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		SerializationManager.save(baos, new SaveFileFormat(entities));
+		var bufferArray = baos.toByteArray();
+		var buffer = new PacketByteBuf(Unpooled.buffer(bufferArray.length));
+		buffer.writeByteArray(bufferArray);
+
+		try
+		{
+			baos.close();
+		}
+		catch (IOException e)
+		{
+			e.printStackTrace();
+		}
+
+		ServerPlayNetworking.send(player, new Identifier(AdvancedPlayer.MOD_ID, "sync"), buffer);
+	}
+
+	public static void ReadEntity(byte[] buffer)
+	{
+		ByteArrayInputStream bais = new ByteArrayInputStream(buffer);
+		var savedData = SerializationManager.load(bais, SaveFileFormat.class);
+		try
+		{
+			bais.close();
+		}
+		catch (IOException e)
+		{
+			e.printStackTrace();
+		}
 	}
 
 }

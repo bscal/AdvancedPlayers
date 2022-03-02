@@ -49,7 +49,7 @@ dependencies {
     modImplementation(include("net.onedaybeard.artemis:artemis-odb-serializer-kryo:2.2.0"))
     //modImplementation(include("net.mostlyoriginal.artemis-odb:contrib-eventbus:2.5.0"))
 
-    modImplementation 'software.bernie.geckolib:geckolib-fabric-1.17:3.0.31'
+    //modImplementation 'software.bernie.geckolib:geckolib-fabric-1.17:3.0.31'
 }
 
 processResources {

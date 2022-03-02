@@ -2,14 +2,12 @@ package me.bscal.advancedplayer.common.mechanics.ecs.systems;
 
 import com.artemis.ComponentMapper;
 import com.artemis.annotations.All;
-import com.artemis.annotations.Wire;
 import com.artemis.systems.IteratingSystem;
 import me.bscal.advancedplayer.common.mechanics.ecs.components.Bleed;
 import me.bscal.advancedplayer.common.mechanics.ecs.components.RefPlayer;
 import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 
 @All({ Bleed.class, RefPlayer.class }) public class BleedSystem extends IteratingSystem implements ServerPlayerEvents.AfterRespawn
@@ -17,7 +15,6 @@ import net.minecraft.server.network.ServerPlayerEntity;
 
 	private ComponentMapper<Bleed> Bleeds;
 	private ComponentMapper<RefPlayer> Players;
-	@Wire(name = "server") private MinecraftServer Server;
 
 	@Override
 	protected void process(int entityId)
