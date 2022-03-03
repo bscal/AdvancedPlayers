@@ -5,6 +5,10 @@ import com.artemis.io.KryoArtemisSerializer;
 import com.artemis.io.SaveFileFormat;
 import com.artemis.managers.WorldSerializationManager;
 import com.artemis.utils.IntBag;
+import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.io.Input;
+import com.esotericsoftware.kryo.io.Output;
+import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import me.bscal.advancedplayer.AdvancedPlayer;
@@ -31,9 +35,13 @@ public final class ECSManager
 
 	public static World World;
 	public static WorldSerializationManager SerializationManager;
+
 	public static Reference2IntOpenHashMap<PlayerEntity> PlayerToEntityId;
 	public static File SavePath;
 	public static Archetype Archetype;
+
+	public static World ClientWorld;
+	public static WorldSerializationManager ClientSerializationManager;
 
 	public static void Init(MinecraftServer server)
 	{
@@ -53,11 +61,11 @@ public final class ECSManager
 
 	public static void InitClient()
 	{
-		SerializationManager = new WorldSerializationManager();
-		WorldConfiguration worldConfig = new WorldConfigurationBuilder().with(SerializationManager).build();
-		World = new World(worldConfig);
-		World.setDelta(DELTA);
-		SerializationManager.setSerializer(new KryoArtemisSerializer(World));
+		ClientSerializationManager = new WorldSerializationManager();
+		WorldConfiguration worldConfig = new WorldConfigurationBuilder().with(ClientSerializationManager).build();
+		ClientWorld = new World(worldConfig);
+		ClientWorld.setDelta(DELTA);
+		ClientSerializationManager.setSerializer(new KryoArtemisSerializer(World));
 	}
 
 	public static void Tick()
@@ -184,6 +192,9 @@ public final class ECSManager
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		SerializationManager.save(baos, new SaveFileFormat(entities));
 		var bufferArray = baos.toByteArray();
+		// TODO maybe look into optimizing this?
+		// 1 sync per tick isnt that bad.
+		// Maybe a pooled buffer?
 		var buffer = new PacketByteBuf(Unpooled.buffer(bufferArray.length));
 		buffer.writeByteArray(bufferArray);
 
@@ -196,13 +207,14 @@ public final class ECSManager
 			e.printStackTrace();
 		}
 
+		AdvancedPlayer.LOGGER.info(String.format("Sending Entity %d, Sizeof %d", entityId, bufferArray.length));
 		ServerPlayNetworking.send(player, new Identifier(AdvancedPlayer.MOD_ID, "sync"), buffer);
 	}
 
 	public static void ReadEntity(byte[] buffer)
 	{
 		ByteArrayInputStream bais = new ByteArrayInputStream(buffer);
-		var savedData = SerializationManager.load(bais, SaveFileFormat.class);
+		var savedData = ClientSerializationManager.load(bais, SaveFileFormat.class);
 		try
 		{
 			bais.close();
@@ -212,5 +224,53 @@ public final class ECSManager
 			e.printStackTrace();
 		}
 	}
+
+	/**
+	 * TODO cache and improve
+	 */
+	public static void SyncComponent(ServerPlayerEntity player, Class<? extends Component> clazz)
+	{
+		Kryo kyro = GetServerKyro();
+
+		var entityId = PlayerToEntityId.getInt(player.getUuid());
+		var entity = World.getEntity(entityId);
+		var component = entity.getComponent(clazz);
+		if (component == null) return;
+
+		Output output = new Output(32, 1024);
+		kyro.writeObject(output, component);
+
+		byte[] buffer = output.getBuffer();
+		ByteBuf byteBuf = Unpooled.buffer(buffer.length);
+		PacketByteBuf packetByteBuf = new PacketByteBuf(byteBuf);
+		packetByteBuf.writeInt(entityId);
+		packetByteBuf.writeByteArray(buffer);
+
+		ServerPlayNetworking.send(player, new Identifier(AdvancedPlayer.MOD_ID, "sync_component"), packetByteBuf);
+	}
+
+	/**
+	 * TODO cache and improve
+	 */
+	public static Component ReadComponent(int entityId, byte[] buffer, Class<? extends Component> clazz)
+	{
+		Kryo kyro = GetClientKyro();
+		Input input = new Input(buffer);
+		var entity = ClientWorld.getEntity(entityId);
+		var newComponent = kyro.readObject(input, clazz);
+		entity.edit().add(newComponent);
+		return newComponent;
+	}
+
+	private static Kryo GetClientKyro()
+	{
+		return ((KryoArtemisSerializer)ClientSerializationManager.getSerializer()).getKryo();
+	}
+
+	private static Kryo GetServerKyro()
+	{
+		return ((KryoArtemisSerializer)SerializationManager.getSerializer()).getKryo();
+	}
+
 
 }

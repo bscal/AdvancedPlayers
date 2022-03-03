@@ -7,14 +7,15 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.loader.api.FabricLoader;
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.Logger;
 
 public class AdvancedPlayer implements ModInitializer
 {
 
 	public static final String MOD_ID = "advancedplayer";
-	public static final Logger LOGGER = LogManager.getLogger("AdvancedPlayer");
+	public static final Logger LOGGER = (Logger) LogManager.getLogger("AdvancedPlayer");
 
 	private static boolean SeasonsEnabled;
 
@@ -48,4 +49,5 @@ public class AdvancedPlayer implements ModInitializer
 	{
 		return SeasonsEnabled;
 	}
+
 }

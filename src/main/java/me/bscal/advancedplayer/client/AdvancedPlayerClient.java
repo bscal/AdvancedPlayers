@@ -51,7 +51,7 @@ import java.util.stream.Stream;
 
 		ECSManager.InitClient();
 		ClientPlayNetworking.registerGlobalReceiver(new Identifier(AdvancedPlayer.MOD_ID, "sync"), (client, handler, buf, responseSender) -> {
-			byte[] buffer = buf.readByteArray();
+			final byte[] buffer = buf.readByteArray();
 			client.execute(() -> {
 				ECSManager.ReadEntity(buffer);
 			});
