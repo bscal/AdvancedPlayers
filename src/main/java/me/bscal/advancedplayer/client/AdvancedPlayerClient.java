@@ -12,6 +12,8 @@ import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.fabricmc.fabric.api.networking.v1.PacketSender;
+import net.fabricmc.fabric.impl.networking.ClientSidePacketRegistryImpl;
+import net.fabricmc.fabric.impl.networking.ServerSidePacketRegistryImpl;
 import net.fabricmc.fabric.impl.screenhandler.client.ClientNetworking;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayNetworkHandler;
@@ -50,11 +52,10 @@ import java.util.stream.Stream;
 				new KeyBinding("key.advancedplayer.debug_temperature", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_COMMA, "category.advancedplayer.debug"));
 
 		ECSManager.InitClient();
-		ClientPlayNetworking.registerGlobalReceiver(new Identifier(AdvancedPlayer.MOD_ID, "sync"), (client, handler, buf, responseSender) -> {
+
+		ClientPlayNetworking.registerGlobalReceiver(ECSManager.SYNC_CHANNEL, (client, handler, buf, responseSender) -> {
 			final byte[] buffer = buf.readByteArray();
-			client.execute(() -> {
-				ECSManager.ReadEntity(buffer);
-			});
+			client.execute(() -> ECSManager.ReadEntity(buffer));
 		});
 
 		HudRenderCallback.EVENT.register(TemperatureDebugWindow);

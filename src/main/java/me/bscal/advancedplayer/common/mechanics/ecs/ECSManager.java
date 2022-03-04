@@ -6,9 +6,12 @@ import com.artemis.io.SaveFileFormat;
 import com.artemis.managers.WorldSerializationManager;
 import com.artemis.utils.IntBag;
 import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.io.ByteBufferInputStream;
+import com.esotericsoftware.kryo.io.ByteBufferOutputStream;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufOutputStream;
 import io.netty.buffer.Unpooled;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import me.bscal.advancedplayer.AdvancedPlayer;
@@ -26,23 +29,29 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.WorldSavePath;
 
 import java.io.*;
+import java.nio.ByteBuffer;
 
 public final class ECSManager
 {
 
 	public static final String SAVE_EXTENSION = ".bin";
 	public static final float DELTA = 1f / 20f; // Minecraft runs 20 ticks per seconds, so I don't think there is a delta?
+	public static final Identifier SYNC_CHANNEL = new Identifier(AdvancedPlayer.MOD_ID, "sync");
 
+	// *** Server Side ***
 	public static World World;
 	public static WorldSerializationManager SerializationManager;
-
 	public static Reference2IntOpenHashMap<PlayerEntity> PlayerToEntityId;
 	public static File SavePath;
-	public static Archetype Archetype;
+	public static Archetype PlayerArchetype;
 
+	// *** Client Side ***
 	public static World ClientWorld;
 	public static WorldSerializationManager ClientSerializationManager;
 
+	/**
+	 * Initializes the main world. This is updated server side, and all components should be created in here
+	 */
 	public static void Init(MinecraftServer server)
 	{
 		SerializationManager = new WorldSerializationManager();
@@ -56,16 +65,19 @@ public final class ECSManager
 		SerializationManager.setSerializer(new KryoArtemisSerializer(World));
 
 		SavePath = new File(server.getSavePath(WorldSavePath.ROOT) + "/data/entities/");
-		Archetype = new ArchetypeBuilder().add(Temperature.class, Wetness.class, Sync.class).build(World);
+		PlayerArchetype = new ArchetypeBuilder().add(Temperature.class, Wetness.class, Sync.class).build(World);
 	}
 
+	/**
+	 * Initializes a world for the client. Only purpose is to sync component data.
+	 */
 	public static void InitClient()
 	{
 		ClientSerializationManager = new WorldSerializationManager();
 		WorldConfiguration worldConfig = new WorldConfigurationBuilder().with(ClientSerializationManager).build();
 		ClientWorld = new World(worldConfig);
 		ClientWorld.setDelta(DELTA);
-		ClientSerializationManager.setSerializer(new KryoArtemisSerializer(World));
+		ClientSerializationManager.setSerializer(new KryoArtemisSerializer(ClientWorld));
 	}
 
 	public static void Tick()
@@ -147,7 +159,7 @@ public final class ECSManager
 		}
 		else
 		{
-			entityId = World.create(Archetype);
+			entityId = World.create(PlayerArchetype);
 		}
 		Entity entity = World.getEntity(entityId);
 		RefPlayer refPlayer = new RefPlayer();
@@ -189,45 +201,28 @@ public final class ECSManager
 		IntBag entities = new IntBag(1);
 		entities.add(entityId);
 
-		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		ByteArrayOutputStream baos = new ByteArrayOutputStream(256);
 		SerializationManager.save(baos, new SaveFileFormat(entities));
-		var bufferArray = baos.toByteArray();
+		//var bufferArray = baos.toByteArray();
 		// TODO maybe look into optimizing this?
 		// 1 sync per tick isnt that bad.
 		// Maybe a pooled buffer?
-		var buffer = new PacketByteBuf(Unpooled.buffer(bufferArray.length));
-		buffer.writeByteArray(bufferArray);
-
-		try
-		{
-			baos.close();
-		}
-		catch (IOException e)
-		{
-			e.printStackTrace();
-		}
-
-		AdvancedPlayer.LOGGER.info(String.format("Sending Entity %d, Sizeof %d", entityId, bufferArray.length));
-		ServerPlayNetworking.send(player, new Identifier(AdvancedPlayer.MOD_ID, "sync"), buffer);
+		var buffer = Unpooled.buffer(baos.toByteArray().length);
+		var packetBuffer = new PacketByteBuf(buffer);
+		packetBuffer.writeByteArray(baos.toByteArray());
+		//buffer.writeByteArray(bufferArray);
+		AdvancedPlayer.LOGGER.info(String.format("Sending Entity %d, Sizeof %d", entityId,buffer.array().length));
+		ServerPlayNetworking.send(player, SYNC_CHANNEL , packetBuffer);
 	}
 
 	public static void ReadEntity(byte[] buffer)
 	{
-		ByteArrayInputStream bais = new ByteArrayInputStream(buffer);
-		var savedData = ClientSerializationManager.load(bais, SaveFileFormat.class);
-		try
-		{
-			bais.close();
-		}
-		catch (IOException e)
-		{
-			e.printStackTrace();
-		}
+		ByteBufferInputStream bbis = new ByteBufferInputStream(ByteBuffer.wrap(buffer));
+		//ByteArrayInputStream bais = new ByteArrayInputStream(buffer);
+		var savedData = ClientSerializationManager.load(bbis, SaveFileFormat.class);
+		AdvancedPlayer.LOGGER.info(String.format("Reading Entity %d", savedData.entities.get(0)));
 	}
 
-	/**
-	 * TODO cache and improve
-	 */
 	public static void SyncComponent(ServerPlayerEntity player, Class<? extends Component> clazz)
 	{
 		Kryo kyro = GetServerKyro();
@@ -237,11 +232,11 @@ public final class ECSManager
 		var component = entity.getComponent(clazz);
 		if (component == null) return;
 
-		Output output = new Output(32, 1024);
+		Output output = new Output(32, 1024); // TODO think about caching?
 		kyro.writeObject(output, component);
 
 		byte[] buffer = output.getBuffer();
-		ByteBuf byteBuf = Unpooled.buffer(buffer.length);
+		ByteBuf byteBuf = Unpooled.buffer(buffer.length); // TODO think about caching?
 		PacketByteBuf packetByteBuf = new PacketByteBuf(byteBuf);
 		packetByteBuf.writeInt(entityId);
 		packetByteBuf.writeByteArray(buffer);
@@ -249,15 +244,13 @@ public final class ECSManager
 		ServerPlayNetworking.send(player, new Identifier(AdvancedPlayer.MOD_ID, "sync_component"), packetByteBuf);
 	}
 
-	/**
-	 * TODO cache and improve
-	 */
 	public static Component ReadComponent(int entityId, byte[] buffer, Class<? extends Component> clazz)
 	{
 		Kryo kyro = GetClientKyro();
-		Input input = new Input(buffer);
+		Input input = new Input(buffer); // This is probably ok not to cache?
 		var entity = ClientWorld.getEntity(entityId);
 		var newComponent = kyro.readObject(input, clazz);
+		// Seems to create the component and then "replace" the component instance regardless if it exists or not
 		entity.edit().add(newComponent);
 		return newComponent;
 	}
@@ -271,6 +264,5 @@ public final class ECSManager
 	{
 		return ((KryoArtemisSerializer)SerializationManager.getSerializer()).getKryo();
 	}
-
 
 }
