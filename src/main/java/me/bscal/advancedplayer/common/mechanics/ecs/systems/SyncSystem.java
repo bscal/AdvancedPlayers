@@ -13,6 +13,7 @@ import net.minecraft.server.network.ServerPlayerEntity;
 {
 
 	ComponentMapper<RefPlayer> PlayerReferences;
+	ComponentMapper<Sync> SyncPlayers;
 
 	public SyncSystem()
 	{
@@ -22,6 +23,12 @@ import net.minecraft.server.network.ServerPlayerEntity;
 	@Override
 	protected void process(int entityId)
 	{
+		var Player = PlayerReferences.get(entityId).Player;
+		var Sync = SyncPlayers.get(entityId);
+
+
+
+
 		AdvancedPlayer.LOGGER.info("syncing " + entityId);
 		ECSManager.SyncEntity((ServerPlayerEntity) PlayerReferences.get(entityId).Player);
 	}

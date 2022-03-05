@@ -8,6 +8,7 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
@@ -54,9 +55,14 @@ import java.util.stream.Stream;
 		ECSManager.InitClient();
 
 		ClientPlayNetworking.registerGlobalReceiver(ECSManager.SYNC_CHANNEL, (client, handler, buf, responseSender) -> {
-			final byte[] buffer = buf.readByteArray();
+			final byte[] buffer = new byte[buf.writerIndex()];
+			buf.getBytes(0, buffer);
 			client.execute(() -> ECSManager.ReadEntity(buffer));
 		});
+
+		ClientTickEvents.END_CLIENT_TICK.register((client -> {
+			ECSManager.ClientWorld.process();
+		}));
 
 		HudRenderCallback.EVENT.register(TemperatureDebugWindow);
 
