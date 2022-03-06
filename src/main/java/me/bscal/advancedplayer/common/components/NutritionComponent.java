@@ -60,7 +60,7 @@ public class NutritionComponent implements ComponentV3, AutoSyncedComponent, Ser
 		if (IsDirty)
 		{
 			IsDirty = false;
-			ComponentManager.NUTRITION.sync(m_Provider);
+			//ComponentManager.NUTRITION.sync(m_Provider);
 		}
 	}
 

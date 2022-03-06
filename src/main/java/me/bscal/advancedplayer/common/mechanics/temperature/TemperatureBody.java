@@ -78,8 +78,8 @@ public class TemperatureBody extends EntityBodyComponent
 		float lightTemperature = GetLightTemperature(m_Provider.world.getLightLevel(LightType.SKY, pos));
 		float humidity = 0.5f;
 		float wind = 3f;
-		PlayerStatsComponent playerStatsComponent = ComponentManager.PLAYER_STATS.get(m_Provider);
-		float wetness = playerStatsComponent.Wetness;
+		//PlayerStatsComponent playerStatsComponent = ComponentManager.PLAYER_STATS.get(m_Provider);
+		//float wetness = playerStatsComponent.Wetness;
 		TemperatureClothing.ClothingData clothingData = GetProviderClothingData();
 		Insulation = clothingData.Insulation;
 		WindResistance = clothingData.WindResistance;
@@ -102,8 +102,8 @@ public class TemperatureBody extends EntityBodyComponent
 		CoreBodyTemperature = MathHelper.lerp(delta, CoreBodyTemperature, NORMAL);
 
 		// Sweat
-		if (CoreBodyTemperature >= HOT) playerStatsComponent.Wetness += 0.1f;
-		else if (playerStatsComponent.Wetness > 0) playerStatsComponent.Wetness -= 0.1f;
+		//if (CoreBodyTemperature >= HOT) playerStatsComponent.Wetness += 0.1f;
+		//else if (playerStatsComponent.Wetness > 0) playerStatsComponent.Wetness -= 0.1f;
 
 		IsDirty = true;
 
@@ -120,7 +120,7 @@ public class TemperatureBody extends EntityBodyComponent
 			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("diff = " + diff);
 			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("delta = " + delta);
 			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("heatLossRate = " + HeatLossRate);
-			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("wetness = " + wetness);
+			//AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("wetness = " + wetness);
 			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("TemperatureShiftType = " + ShiftType);
 			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("biomeId = " + biomeId);
 			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("season = " + SeasonAPI.getSeason(biomeId));
@@ -186,7 +186,7 @@ public class TemperatureBody extends EntityBodyComponent
 	@Override
 	public void Sync()
 	{
-		ComponentManager.BODY_TEMPERATURE.sync(m_Provider);
+		//ComponentManager.BODY_TEMPERATURE.sync(m_Provider);
 	}
 
 	@Override

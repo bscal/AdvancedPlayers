@@ -5,6 +5,7 @@ import com.artemis.annotations.All;
 import com.artemis.systems.IteratingSystem;
 import me.bscal.advancedplayer.AdvancedPlayer;
 import me.bscal.advancedplayer.common.mechanics.ecs.components.RefPlayer;
+import me.bscal.advancedplayer.common.mechanics.ecs.components.Sync;
 import me.bscal.advancedplayer.common.mechanics.ecs.components.Temperature;
 import me.bscal.advancedplayer.common.mechanics.ecs.components.Wetness;
 import me.bscal.advancedplayer.common.mechanics.temperature.TemperatureBiomeRegistry;
@@ -18,11 +19,12 @@ import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.LightType;
 import net.minecraft.world.biome.Biome;
 
-@All({ RefPlayer.class, Temperature.class }) public class TemperatureSystem extends IteratingSystem
+@All({ RefPlayer.class, Temperature.class, Sync.class }) public class TemperatureSystem extends IteratingSystem
 {
 
 	ComponentMapper<Temperature> Temperatures;
 	ComponentMapper<RefPlayer> Players;
+	ComponentMapper<Sync> SyncPlayers;
 	ComponentMapper<Wetness> PlayerWetness;
 
 	@Override
@@ -31,6 +33,7 @@ import net.minecraft.world.biome.Biome;
 		AdvancedPlayer.LOGGER.info("temping " + entityId);
 		var Temperature = Temperatures.get(entityId);
 		var Player = Players.get(entityId).Player;
+		var sync = SyncPlayers.get(entityId);
 
 		var WetnessComponent = PlayerWetness.get(entityId);
 		float Wetness = (WetnessComponent == null) ? 0 : WetnessComponent.Wetness;
@@ -60,11 +63,13 @@ import net.minecraft.world.biome.Biome;
 		Temperature.Work = MathHelper.clamp(Temperature.Work - Temperature.HeatLossRate, 0, 10f);
 		// Body moving towards the outside temperature. Not an expert at thermodynamics but this seems like a
 		// decent system even though not 100% accurate
+		Temperature.CoreBodyTemperature = MathHelper.clamp(Temperature.CoreBodyTemperature, TemperatureBody.MIN_COLD, TemperatureBody.MAX_HOT);
 		Temperature.CoreBodyTemperature = MathHelper.lerp(Temperature.HeatLossRate, Temperature.CoreBodyTemperature, Temperature.OutSideTemperature);
 		// 100% would not allow evaporation to take place. This does not matter if it is cold.
 		float delta = TemperatureBody.TemperatureShiftType.IsWarming(Temperature.ShiftType) ? MathHelper.lerp(humidity, .1f, .0f) : .1f;
 		Temperature.CoreBodyTemperature = MathHelper.lerp(delta, Temperature.CoreBodyTemperature, TemperatureBody.NORMAL);
 
+		sync.Add(Temperature, Temperature.class);
 	}
 
 	public float GetYTemperature(BlockPos pos)

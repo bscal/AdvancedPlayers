@@ -24,16 +24,17 @@ public class AdvancedPlayer implements ModInitializer
 	{
 		SeasonsEnabled = FabricLoader.getInstance().isModLoaded("seasons");
 		LOGGER.info("MCSeasons status: Loaded = " + SeasonsEnabled);
+		LOGGER.setLevel(Level.ALL);
 
 		ServerLifecycleEvents.SERVER_STARTING.register(server -> {
 			ECSManager.Init(server);
 		});
 
-		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
-			ECSManager.LoadOrCreatePlayer(server, handler.player);
+		ServerPlayConnectionEvents.INIT.register((handler, sender) -> {
+			ECSManager.LoadOrCreatePlayer(handler.player);
 
 			LOGGER.info(handler.player.getDisplayName().asString() + " has connected");
-			ComponentManager.BODY_TEMPERATURE.get(handler.player);
+			//ComponentManager.BODY_TEMPERATURE.get(handler.player);
 		});
 
 		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {

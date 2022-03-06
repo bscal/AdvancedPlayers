@@ -10,6 +10,7 @@ import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.fabricmc.fabric.api.networking.v1.PacketSender;
@@ -52,7 +53,13 @@ import java.util.stream.Stream;
 		DebugTemperatureKeyBind = KeyBindingHelper.registerKeyBinding(
 				new KeyBinding("key.advancedplayer.debug_temperature", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_COMMA, "category.advancedplayer.debug"));
 
-		ECSManager.InitClient();
+		ClientPlayConnectionEvents.INIT.register((a, b) -> {
+			ECSManager.InitClient();
+		});
+
+		ClientPlayConnectionEvents.DISCONNECT.register(((handler, client) -> {
+			ECSManager.CleanupClient();
+		}));
 
 		ClientPlayNetworking.registerGlobalReceiver(ECSManager.SYNC_CHANNEL, (client, handler, buf, responseSender) -> {
 			final byte[] buffer = new byte[buf.writerIndex()];
@@ -60,7 +67,12 @@ import java.util.stream.Stream;
 			client.execute(() -> ECSManager.ReadEntity(buffer));
 		});
 
-		ClientTickEvents.END_CLIENT_TICK.register((client -> {
+		ClientPlayNetworking.registerGlobalReceiver(ECSManager.CREATE_CHANNEL, ((client, handler, buf, responseSender) -> {
+			final int networkId = buf.readInt();
+			client.execute(() -> ECSManager.CreateUser(networkId));
+		}));
+
+		ClientTickEvents.END_WORLD_TICK.register((client -> {
 			ECSManager.ClientWorld.process();
 		}));
 
@@ -71,22 +83,12 @@ import java.util.stream.Stream;
 			var rm = client.getResourceManager();
 			var id = new Identifier(AdvancedPlayer.MOD_ID, "textures");
 			AtlasTexture = new SpriteAtlasTexture(id);
-			Stream<Identifier> textures = Stream.of(
-					TEXTURE_BURNING,
-					TEXTURE_HOT,
-					TEXTURE_WARM,
-					TEXTURE_NORMAL,
-					TEXTURE_COOL,
-					TEXTURE_COLD,
-					TEXTURE_FREEZING,
-					TEXTURE_THERMOMETER,
-					TEXTURE_NEUTRAL,
-					TEXTURE_DOWN_CARROT,
-					TEXTURE_UP_CARROT
-			);
+			Stream<Identifier> textures = Stream.of(TEXTURE_BURNING, TEXTURE_HOT, TEXTURE_WARM, TEXTURE_NORMAL, TEXTURE_COOL, TEXTURE_COLD, TEXTURE_FREEZING,
+					TEXTURE_THERMOMETER, TEXTURE_NEUTRAL, TEXTURE_DOWN_CARROT, TEXTURE_UP_CARROT);
 			var data = AtlasTexture.stitch(rm, textures, client.getProfiler(), 0);
 			AtlasTexture.upload(data);
-			AtlasTexture.registerTexture(client.getTextureManager(), rm, id, (runnable) -> {});
+			AtlasTexture.registerTexture(client.getTextureManager(), rm, id, (runnable) -> {
+			});
 
 			HudRenderCallback.EVENT.register(new TemperatureWindow());
 		});
@@ -94,6 +96,6 @@ import java.util.stream.Stream;
 
 	public static Identifier GetTextureId(String filename)
 	{
-		return new Identifier(AdvancedPlayer.MOD_ID,  filename);
+		return new Identifier(AdvancedPlayer.MOD_ID, filename);
 	}
 }

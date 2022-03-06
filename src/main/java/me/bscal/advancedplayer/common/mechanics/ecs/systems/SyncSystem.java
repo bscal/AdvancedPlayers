@@ -3,17 +3,24 @@ package me.bscal.advancedplayer.common.mechanics.ecs.systems;
 import com.artemis.ComponentMapper;
 import com.artemis.annotations.All;
 import com.artemis.systems.IntervalIteratingSystem;
+import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.io.Output;
+import io.netty.buffer.Unpooled;
 import me.bscal.advancedplayer.AdvancedPlayer;
 import me.bscal.advancedplayer.common.mechanics.ecs.ECSManager;
 import me.bscal.advancedplayer.common.mechanics.ecs.components.RefPlayer;
 import me.bscal.advancedplayer.common.mechanics.ecs.components.Sync;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.minecraft.network.PacketByteBuf;
 import net.minecraft.server.network.ServerPlayerEntity;
 
 @All({ RefPlayer.class, Sync.class }) public class SyncSystem extends IntervalIteratingSystem
 {
 
-	ComponentMapper<RefPlayer> PlayerReferences;
-	ComponentMapper<Sync> SyncPlayers;
+	private ComponentMapper<RefPlayer> PlayerReferences;
+	private ComponentMapper<Sync> SyncPlayers;
+
+	private Output Out;
 
 	public SyncSystem()
 	{
@@ -21,15 +28,35 @@ import net.minecraft.server.network.ServerPlayerEntity;
 	}
 
 	@Override
+	protected void initialize()
+	{
+		super.initialize();
+
+		Out = new Output(256, 1024);
+	}
+
+	@Override
 	protected void process(int entityId)
 	{
-		var Player = PlayerReferences.get(entityId).Player;
+		long start = System.nanoTime();
+
+		var Player = (ServerPlayerEntity) PlayerReferences.get(entityId).Player;
 		var Sync = SyncPlayers.get(entityId);
 
+		Kryo kryo = ECSManager.GetServerKyro();
+		kryo.writeObject(Out, Sync);
 
+		var packetBuf = new PacketByteBuf(Unpooled.wrappedBuffer(Out.getBuffer()));
+		ServerPlayNetworking.send(Player, ECSManager.SYNC_CHANNEL, packetBuf);
 
+		Out.clear();
+		Sync.Components.clear();
+		Sync.AddedComponents.clear();
+		Sync.RemovedComponents.clear();
 
-		AdvancedPlayer.LOGGER.info("syncing " + entityId);
-		ECSManager.SyncEntity((ServerPlayerEntity) PlayerReferences.get(entityId).Player);
+		long end = System.nanoTime() - start;
+		AdvancedPlayer.LOGGER.info(
+				String.format("Syncing id %d. Sizeof: %d\nTook: %dns, %dms", entityId, packetBuf.array().length, end,
+						end / 1000000));
 	}
 }

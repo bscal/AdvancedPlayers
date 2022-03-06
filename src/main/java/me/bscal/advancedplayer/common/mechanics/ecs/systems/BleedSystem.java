@@ -4,6 +4,7 @@ import com.artemis.ComponentMapper;
 import com.artemis.annotations.All;
 import com.artemis.systems.IteratingSystem;
 import com.artemis.utils.IntBag;
+import me.bscal.advancedplayer.common.mechanics.ecs.ECSManager;
 import me.bscal.advancedplayer.common.mechanics.ecs.components.Bleed;
 import me.bscal.advancedplayer.common.mechanics.ecs.components.RefPlayer;
 import me.bscal.advancedplayer.common.mechanics.ecs.components.Sync;
@@ -26,22 +27,19 @@ import net.minecraft.server.network.ServerPlayerEntity;
 		var Player = Players.get(entityId).Player;
 		var Sync = SyncPlayers.get(entityId);
 
-		if (!IsSuccess(Player)) return;
-		if (!Player.isAlive())
-		{
-			Bleeds.remove(entityId);
-			return;
-		}
-
 		var it = Bleed.Durations.iterator();
 		while (it.hasNext())
 		{
 			int i = it.nextIndex();
-			Player.damage(DamageSource.GENERIC, Bleed.Damage);
+
+			if (IsValid(Player))
+				Player.damage(DamageSource.GENERIC, Bleed.Damage);
 
 			int duration = Bleed.Durations.getInt(i) - 1;
 			if (duration < 1) it.remove();
 			else Bleed.Durations.set(i, duration);
+
+			Sync.Add(Bleed, Bleed.getClass());
 		}
 
 		if (Bleed.IsEmpty())
@@ -50,18 +48,9 @@ import net.minecraft.server.network.ServerPlayerEntity;
 		}
 	}
 
-	private boolean IsSuccess(PlayerEntity p)
+	private boolean IsValid(PlayerEntity p)
 	{
-		return p != null && !p.isCreative() && !p.isSpectator();
-	}
-
-	@Override
-	public void removed(IntBag entities)
-	{
-		for (int i = 0; i < entities.size(); i++)
-		{
-			var sync = SyncPlayers.get(i);
-		}
+		return p.isAlive() && !p.isCreative() && !p.isSpectator();
 	}
 
 	@Override
@@ -76,5 +65,14 @@ import net.minecraft.server.network.ServerPlayerEntity;
 		super.initialize();
 
 		ServerPlayerEvents.AFTER_RESPAWN.register(this);
+	}
+
+	@Override
+	protected void removed(int entityId)
+	{
+		super.removed(entityId);
+
+		var sync = SyncPlayers.get(entityId);
+		sync.Remove(Bleed.class);
 	}
 }

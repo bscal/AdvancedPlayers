@@ -6,11 +6,10 @@ import com.artemis.io.SaveFileFormat;
 import com.artemis.managers.WorldSerializationManager;
 import com.artemis.utils.IntBag;
 import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.io.*;
+import com.esotericsoftware.kryo.io.ByteBufferInput;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufOutputStream;
 import io.netty.buffer.Unpooled;
-import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import me.bscal.advancedplayer.AdvancedPlayer;
 import me.bscal.advancedplayer.common.mechanics.ecs.components.*;
@@ -26,8 +25,13 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.WorldSavePath;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.List;
+import java.util.Set;
 
 public final class ECSManager
 {
@@ -35,6 +39,7 @@ public final class ECSManager
 	public static final String SAVE_EXTENSION = ".bin";
 	public static final float DELTA = 1f / 20f; // Minecraft runs 20 ticks per seconds, so I don't think there is a delta?
 	public static final Identifier SYNC_CHANNEL = new Identifier(AdvancedPlayer.MOD_ID, "sync");
+	public static final Identifier CREATE_CHANNEL = new Identifier(AdvancedPlayer.MOD_ID, "create");
 
 	// *** Server Side ***
 	public static World World;
@@ -47,12 +52,9 @@ public final class ECSManager
 	// *** Client Side ***
 	public static World ClientWorld;
 	public static WorldSerializationManager ClientSerializationManager;
-
-	/**
-	 * A map to lookup components for entities that synced to the client.
-	 * Key is the entityId from server. These values are never processed on the client.
-	 */
-	public static Int2ObjectOpenHashMap<ClientECSContainer> ClientComponents;
+	public static Archetype ClientArchetype;
+	public static int ClientEntityId;
+	public static EntitySubscription Subscription;
 
 	/**
 	 * Initializes the main world. This is updated server side, and all components should be created in here
@@ -60,6 +62,7 @@ public final class ECSManager
 	public static void Init(MinecraftServer server)
 	{
 		SerializationManager = new WorldSerializationManager();
+
 		PlayerToEntityId = new Reference2IntOpenHashMap<>();
 
 		WorldConfiguration worldConfig = new WorldConfigurationBuilder().with(SerializationManager, new TemperatureSystem(), new BleedSystem(),
@@ -67,10 +70,16 @@ public final class ECSManager
 		worldConfig.register("server", server);
 		World = new World(worldConfig);
 		World.setDelta(DELTA);
-		SerializationManager.setSerializer(new KryoArtemisSerializer(World));
+
+		var kryoSerializer = new KryoArtemisSerializer(World);
+		kryoSerializer.register(Sync.AddContainer.class, new Sync.AddContainer());
+		kryoSerializer.register(Sync.ClassContainer.class, new Sync.ClassContainer());
+		SerializationManager.setSerializer(kryoSerializer);
 
 		SavePath = new File(server.getSavePath(WorldSavePath.ROOT) + "/data/entities/");
 		PlayerArchetype = new ArchetypeBuilder().add(Temperature.class, Wetness.class, Sync.class).build(World);
+
+		AdvancedPlayer.LOGGER.info("Initialized ECSManager Server!");
 	}
 
 	/**
@@ -78,12 +87,22 @@ public final class ECSManager
 	 */
 	public static void InitClient()
 	{
-		ClientComponents = new Int2ObjectOpenHashMap<>();
 		ClientSerializationManager = new WorldSerializationManager();
 		WorldConfiguration worldConfig = new WorldConfigurationBuilder().with(ClientSerializationManager).build();
 		ClientWorld = new World(worldConfig);
 		ClientWorld.setDelta(DELTA);
-		ClientSerializationManager.setSerializer(new KryoArtemisSerializer(ClientWorld));
+		ClientWorld.getComponentManager().getTypeFactory().getTypeFor(Temperature.class);
+
+		var kryoSerializer = new KryoArtemisSerializer(ClientWorld);
+		kryoSerializer.register(Sync.AddContainer.class, new Sync.AddContainer());
+		kryoSerializer.register(Sync.ClassContainer.class, new Sync.ClassContainer());
+		ClientSerializationManager.setSerializer(kryoSerializer);
+
+		ClientArchetype = new ArchetypeBuilder().add(Sync.class).build(ClientWorld);
+
+		Subscription = ClientWorld.getAspectSubscriptionManager().get(Aspect.all(Sync.class));
+
+		AdvancedPlayer.LOGGER.info("Initialized ECSManager Client!");
 	}
 
 	public static void Tick()
@@ -96,11 +115,6 @@ public final class ECSManager
 		 */
 
 		World.process();
-	}
-
-	public static int GetPlayersEntityId(PlayerEntity player)
-	{
-		return PlayerToEntityId.getInt(player);
 	}
 
 	public static Component AddComponent(int entityId, Class<? extends Component> clazz)
@@ -144,7 +158,7 @@ public final class ECSManager
 		entity.edit().remove(clazz);
 	}
 
-	public static void LoadOrCreatePlayer(MinecraftServer server, PlayerEntity player)
+	public static void LoadOrCreatePlayer(ServerPlayerEntity player)
 	{
 		int entityId = -1;
 
@@ -168,10 +182,17 @@ public final class ECSManager
 			entityId = World.create(PlayerArchetype);
 		}
 		Entity entity = World.getEntity(entityId);
+
+		// Creates a RefPlayer Component. Is transient
 		RefPlayer refPlayer = new RefPlayer();
 		refPlayer.Player = player;
 		entity.edit().add(refPlayer);
+
 		PlayerToEntityId.put(player, entityId);
+
+		var buffer = new PacketByteBuf(Unpooled.buffer(4));
+		buffer.writeInt(entityId);
+		ServerPlayNetworking.send(player, CREATE_CHANNEL, buffer);
 	}
 
 	public static void SaveAndRemovePlayer(MinecraftServer server, PlayerEntity player)
@@ -203,89 +224,102 @@ public final class ECSManager
 
 	public static void SyncEntity(ServerPlayerEntity player)
 	{
+		long start = System.nanoTime();
+
 		int entityId = PlayerToEntityId.removeInt(player);
 		IntBag entities = new IntBag(1);
 		entities.add(entityId);
-
-		long start = System.nanoTime();
 
 		ByteBuf buf = Unpooled.buffer(256, 2048);
 		PacketByteBuf packetBuf = new PacketByteBuf(buf);
 		ByteBufOutputStream bbos = new ByteBufOutputStream(buf);
 		SerializationManager.save(bbos, new SaveFileFormat(entities));
 
-/*		ByteArrayOutputStream baos = new ByteArrayOutputStream(256);
-		SerializationManager.save(baos, new SaveFileFormat(entities));
-		//var bufferArray = baos.toByteArray();
-		// TODO maybe look into optimizing this?
-		// 1 sync per tick isnt that bad.
-		// Maybe a pooled buffer?
-		var buffer = Unpooled.buffer(baos.toByteArray().length);
-		var packetBuffer = new PacketByteBuf(buffer);
-		packetBuffer.writeByteArray(baos.toByteArray());*/
-		//buffer.writeByteArray(bufferArray);
+		ServerPlayNetworking.send(player, SYNC_CHANNEL, packetBuf);
 
 		long end = System.nanoTime() - start;
 		AdvancedPlayer.LOGGER.info(String.format("Send Took: %dns, %dms, %.1fs", end, end / 1000000, end / 1000000000f));
 		AdvancedPlayer.LOGGER.info(String.format("Sending Entity %d, Sizeof %d", entityId, buf.array().length));
-		ServerPlayNetworking.send(player, SYNC_CHANNEL, packetBuf);
 	}
 
-	public static void ReadEntity(int entityId, byte[] buffer)
+	public static void CreateUser(int networkId)
 	{
-		ByteArrayInputStream bais = new ByteArrayInputStream(buffer);
-		var savedData = ClientSerializationManager.load(bais, SaveFileFormat.class);
-		AdvancedPlayer.LOGGER.info(String.format("Reading Entity %d", savedData.entities.get(0)));
+		var entity = ClientWorld.createEntity(ClientArchetype);
+		ClientEntityId = entity.getId();
+		entity.getComponent(Sync.class).NetworkId = networkId;
+		AdvancedPlayer.LOGGER.info(String.format("Created user on client, entityId %d, networkId %d", ClientEntityId, networkId));
 	}
 
-	public static void SyncComponent(ServerPlayerEntity player, Class<? extends Component> clazz)
+	public static Sync o;
+
+	public static void ReadEntity(byte[] buffer)
 	{
-		Kryo kyro = GetServerKyro();
+		long start = System.nanoTime();
 
-		var entityId = PlayerToEntityId.getInt(player.getUuid());
-		var entity = World.getEntity(entityId);
-		var component = entity.getComponent(clazz);
-		if (component == null) return;
-
-		ByteBufferOutput output = new ByteBufferOutput(256, 1024);
-		output.writeInt(entityId);
-		kyro.writeObject(output, component);
-		PacketByteBuf packetBuf = new PacketByteBuf(Unpooled.wrappedBuffer(output.getByteBuffer()));
-		ServerPlayNetworking.send(player, new Identifier(AdvancedPlayer.MOD_ID, "sync_component"), packetBuf);
-	}
-
-	public static Component ReadComponent(int entityId, ByteBuffer buffer, Class<? extends Component> clazz)
-	{
-		Kryo kyro = GetClientKyro();
-
-		var entity = ClientWorld.getEntity(entityId);
-		ByteBufferInput input = new ByteBufferInput(buffer);
-		var newComponent = kyro.readObject(input, clazz);
-		entity.edit().add(newComponent);
-		return newComponent;
-	}
-
-	private static Kryo GetClientKyro()
-	{
-		return ((KryoArtemisSerializer)ClientSerializationManager.getSerializer()).getKryo();
-	}
-
-	private static Kryo GetServerKyro()
-	{
-		return ((KryoArtemisSerializer)SerializationManager.getSerializer()).getKryo();
-	}
-
-	public ClientECSContainer GetOrCreateClientComponents(int entityId)
-	{
-		var container = ClientComponents.get(entityId);
-		if (container == null)
+		ByteBufferInput input = new ByteBufferInput(ByteBuffer.wrap(buffer));
+		Sync serverSync = GetClientKyro().readObject(input, Sync.class);
+		o = serverSync;
+		var entities = Subscription.getEntities();
+		boolean found = false;
+		for (int i = 0; i < entities.size(); i++)
 		{
-			container = new ClientECSContainer();
-			ClientComponents.put(entityId, container);
+			Entity entity = ClientWorld.getEntity(i);
+			Sync clientSync = entity.getComponent(Sync.class);
+			if (clientSync.NetworkId == serverSync.NetworkId)
+			{
+				InitEntity(entity.edit(), serverSync.Components, serverSync.RemovedComponents);
+				found = true;
+				break;
+			}
 		}
-		return container;
+
+		if (!found)
+		{
+			Entity entity = ClientWorld.createEntity(ClientArchetype);
+			entity.getComponent(Sync.class).NetworkId = serverSync.NetworkId;
+			InitEntity(entity.edit(), serverSync.Components, null);
+		}
+
+		long end = System.nanoTime() - start;
+		AdvancedPlayer.LOGGER.info(
+				String.format("Reading Entity %d. Adds %d, Removes %d. Took: %dns, %dms. ", serverSync.NetworkId, serverSync.AddedComponents.size(),
+						serverSync.RemovedComponents.size(), end, end / 1000000));
+		AdvancedPlayer.LOGGER.info("Was entity found? " + found);
 	}
 
+	public static void InitEntity(EntityEdit edit, List<Sync.AddContainer> components, Set<Sync.ClassContainer> removedComponents)
+	{
+		for (var added : components)
+		{
+			boolean b = o.Test.get(0) == added.Component.getClass();
+			boolean bb = o.Test.get(0) == Temperature.class;
+			edit.add(added.Component);
+		}
 
+		if (removedComponents == null) return;
 
+		for (var removed : removedComponents)
+			edit.remove(removed.Clazz);
+	}
+
+	public static Kryo GetClientKyro()
+	{
+		return ((KryoArtemisSerializer) ClientSerializationManager.getSerializer()).getKryo();
+	}
+
+	public static Kryo GetServerKyro()
+	{
+		return ((KryoArtemisSerializer) SerializationManager.getSerializer()).getKryo();
+	}
+
+	public static void CleanupClient()
+	{
+		ClientWorld = null;
+		ClientEntityId = -1;
+	}
+
+	public static Component GetClientComponent(Class<? extends Component> clazz)
+	{
+		return ClientWorld.getEntity(ClientEntityId).getComponent(clazz);
+	}
 }

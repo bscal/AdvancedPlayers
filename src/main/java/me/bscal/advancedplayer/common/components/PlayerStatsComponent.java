@@ -98,7 +98,7 @@ public class PlayerStatsComponent implements ComponentV3, AutoSyncedComponent, S
 		if (IsDirty)
 		{
 			IsDirty = false;
-			ComponentManager.PLAYER_STATS.sync(m_Provider);
+			//ComponentManager.PLAYER_STATS.sync(m_Provider);
 		}
 	}
 }

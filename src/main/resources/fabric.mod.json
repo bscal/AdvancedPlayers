@@ -15,21 +15,11 @@
     ],
     "main": [
       "me.bscal.advancedplayer.AdvancedPlayer"
-    ],
-    "cardinal-components": [
-      "me.bscal.advancedplayer.common.components.ComponentManager"
     ]
   },
   "mixins": [
     "AdvancedPlayer.mixins.json"
   ],
-  "custom": {
-    "cardinal-components": [
-      "advancedplayer:body_temperature",
-      "advancedplayer:player",
-      "advancedplayer:nutrition"
-    ]
-  },
   "depends": {
     "fabricloader": ">=0.12.12",
     "fabric": "*",
