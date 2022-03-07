@@ -32,8 +32,6 @@ import java.util.Set;
 	 */
 	public List<AddContainer> Components = new ArrayList<>();
 
-	public List<Class<? extends Component>> Test = new ArrayList<>();
-
 	/**
 	 * A Set to keep track of what classes are added. This isn't sent to client, just keeps track of added classes.
 	 */
@@ -53,7 +51,6 @@ import java.util.Set;
 		var container = new ClassContainer(component);
 		if (AddedComponents.add(container))
 		{
-			Test.add(c);
 			Components.add(new AddContainer(component));
 		}
 	}
@@ -70,8 +67,6 @@ import java.util.Set;
 	public void Clear()
 	{
 		Components.clear();
-		;
-		Test.clear();
 		AddedComponents.clear();
 		RemovedComponents.clear();
 	}
@@ -210,7 +205,6 @@ import java.util.Set;
 		public void write(Kryo kryo, Output output, Class<?> object)
 		{
 			output.writeString(object.getName());
-			kryo.writeClass(output, object);
 		}
 
 		@Override

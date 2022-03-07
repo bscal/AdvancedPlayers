@@ -26,7 +26,32 @@ import net.minecraft.util.Identifier;
 		Thermometer = AdvancedPlayerClient.AtlasTexture.getSprite(AdvancedPlayerClient.TEXTURE_THERMOMETER);
 	}
 
-	public Identifier SetTemperature(float temperature)
+	@Override
+	public void onHudRender(MatrixStack matrixStack, float tickDelta)
+	{
+		var client = MinecraftClient.getInstance();
+		if (client.player == null) return;
+
+		Temperature temperature = (Temperature) ECSManager.GetClientComponent(Temperature.class);
+		if (temperature == null) return;
+
+		/*
+			Thermometer Drawing
+		 */
+		int x = client.getWindow().getScaledWidth() / 2 - 140;
+		int y = client.getWindow().getScaledHeight() - 36;
+
+		RenderSystem.setShaderTexture(0, AdvancedPlayerClient.AtlasTexture.getId());
+
+		InGameHud.drawSprite(matrixStack, x, y, 0, 16, 32, Thermometer);
+
+		var spriteId = SetTemperature(temperature.CoreBodyTemperature);
+		InGameHud.drawSprite(matrixStack, x, y, 0, 16, 32, AdvancedPlayerClient.AtlasTexture.getSprite(spriteId));
+
+		DrawChange(matrixStack, x, y, temperature);
+	}
+
+	private Identifier SetTemperature(float temperature)
 	{
 		if (temperature <= TemperatureBody.FREEZING) return AdvancedPlayerClient.TEXTURE_FREEZING;
 		if (temperature <= TemperatureBody.COLD) return AdvancedPlayerClient.TEXTURE_COLD;
@@ -35,27 +60,6 @@ import net.minecraft.util.Identifier;
 		if (temperature >= TemperatureBody.HOT) return AdvancedPlayerClient.TEXTURE_HOT;
 		if (temperature >= TemperatureBody.WARM) return AdvancedPlayerClient.TEXTURE_WARM;
 		return AdvancedPlayerClient.TEXTURE_NORMAL;
-	}
-
-	@Override
-	public void onHudRender(MatrixStack matrixStack, float tickDelta)
-	{
-		var client = MinecraftClient.getInstance();
-		if (client.player == null) return;
-
-		int x = client.getWindow().getScaledWidth() / 2 - 140;
-		int y = client.getWindow().getScaledHeight() - 36;
-
-		RenderSystem.setShaderTexture(0, AdvancedPlayerClient.AtlasTexture.getId());
-
-		InGameHud.drawSprite(matrixStack, x, y, 0, 16, 32, Thermometer);
-
-		Temperature temperature = (Temperature) ECSManager.GetClientComponent(Temperature.class);
-		if (temperature == null) return;
-		var spriteId = SetTemperature(temperature.CoreBodyTemperature);
-		InGameHud.drawSprite(matrixStack, x, y, 0, 16, 32, AdvancedPlayerClient.AtlasTexture.getSprite(spriteId));
-
-		DrawChange(matrixStack, x, y, temperature);
 	}
 
 	private void DrawChange(MatrixStack matrixStack, int x, int y, Temperature temperature)

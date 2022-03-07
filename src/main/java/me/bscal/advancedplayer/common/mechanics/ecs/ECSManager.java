@@ -53,7 +53,7 @@ public final class ECSManager
 	public static World ClientWorld;
 	public static WorldSerializationManager ClientSerializationManager;
 	public static Archetype ClientArchetype;
-	public static int ClientEntityId;
+	public static int ClientEntityId = -1;
 	public static EntitySubscription Subscription;
 
 	/**
@@ -74,6 +74,7 @@ public final class ECSManager
 		var kryoSerializer = new KryoArtemisSerializer(World);
 		kryoSerializer.register(Sync.AddContainer.class, new Sync.AddContainer());
 		kryoSerializer.register(Sync.ClassContainer.class, new Sync.ClassContainer());
+		kryoSerializer.register(Class.class, new Sync.ClassSerializer());
 		SerializationManager.setSerializer(kryoSerializer);
 
 		SavePath = new File(server.getSavePath(WorldSavePath.ROOT) + "/data/entities/");
@@ -96,6 +97,7 @@ public final class ECSManager
 		var kryoSerializer = new KryoArtemisSerializer(ClientWorld);
 		kryoSerializer.register(Sync.AddContainer.class, new Sync.AddContainer());
 		kryoSerializer.register(Sync.ClassContainer.class, new Sync.ClassContainer());
+		kryoSerializer.register(Class.class, new Sync.ClassSerializer());
 		ClientSerializationManager.setSerializer(kryoSerializer);
 
 		ClientArchetype = new ArchetypeBuilder().add(Sync.class).build(ClientWorld);
@@ -250,15 +252,16 @@ public final class ECSManager
 		AdvancedPlayer.LOGGER.info(String.format("Created user on client, entityId %d, networkId %d", ClientEntityId, networkId));
 	}
 
-	public static Sync o;
-
+	/**
+	 * TODO possibly create a client only system to handle this?
+	 * and/or a Int2Int map NetworkId -> EntityId for faster look ups
+	 */
 	public static void ReadEntity(byte[] buffer)
 	{
 		long start = System.nanoTime();
 
 		ByteBufferInput input = new ByteBufferInput(ByteBuffer.wrap(buffer));
 		Sync serverSync = GetClientKyro().readObject(input, Sync.class);
-		o = serverSync;
 		var entities = Subscription.getEntities();
 		boolean found = false;
 		for (int i = 0; i < entities.size(); i++)
@@ -291,8 +294,6 @@ public final class ECSManager
 	{
 		for (var added : components)
 		{
-			boolean b = o.Test.get(0) == added.Component.getClass();
-			boolean bb = o.Test.get(0) == Temperature.class;
 			edit.add(added.Component);
 		}
 
@@ -320,6 +321,8 @@ public final class ECSManager
 
 	public static Component GetClientComponent(Class<? extends Component> clazz)
 	{
-		return ClientWorld.getEntity(ClientEntityId).getComponent(clazz);
+		var entity = ClientWorld.getEntity(ClientEntityId);
+		if (entity == null) return null;
+		return entity.getComponent(clazz);
 	}
 }

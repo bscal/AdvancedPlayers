@@ -4,6 +4,7 @@ import com.artemis.ComponentMapper;
 import com.artemis.annotations.All;
 import com.artemis.systems.IteratingSystem;
 import me.bscal.advancedplayer.AdvancedPlayer;
+import me.bscal.advancedplayer.client.AdvancedPlayerClient;
 import me.bscal.advancedplayer.common.mechanics.ecs.components.RefPlayer;
 import me.bscal.advancedplayer.common.mechanics.ecs.components.Sync;
 import me.bscal.advancedplayer.common.mechanics.ecs.components.Temperature;
@@ -12,6 +13,8 @@ import me.bscal.advancedplayer.common.mechanics.temperature.TemperatureBiomeRegi
 import me.bscal.advancedplayer.common.mechanics.temperature.TemperatureBody;
 import me.bscal.advancedplayer.common.mechanics.temperature.TemperatureClothing;
 import me.bscal.seasons.api.SeasonAPI;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
@@ -70,6 +73,27 @@ import net.minecraft.world.biome.Biome;
 		Temperature.CoreBodyTemperature = MathHelper.lerp(delta, Temperature.CoreBodyTemperature, TemperatureBody.NORMAL);
 
 		sync.Add(Temperature, Temperature.class);
+
+		if (FabricLoader.getInstance().isDevelopmentEnvironment() && FabricLoader.getInstance().getEnvironmentType() == EnvType.CLIENT)
+		{
+			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.clear();
+			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("CoreBodyTemperature = " + Temperature.CoreBodyTemperature);
+			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("BodyTemperature = " + Temperature.BodyTemperature);
+			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("Work = " + Temperature.Work);
+			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("outsideTemperature = " + Temperature.OutSideTemperature);
+			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("heatLossRate = " + Temperature.HeatLossRate);
+			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("TemperatureShiftType = " + Temperature.ShiftType);
+			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add(String.format("Wetness: Has %s, Value %.2f", Wetness > 0, Wetness));
+			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("season = " + SeasonAPI.getSeason());
+			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("airTemperature = " + airTemperature);
+			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("yTemperature = " + yTemperature);
+			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("lightTemperature = " + lightTemperature);
+			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("diff = " + diff);
+			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("delta = " + delta);
+			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("biomeId = " + biomeId);
+			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("climate = " + climate);
+		}
+
 	}
 
 	public float GetYTemperature(BlockPos pos)

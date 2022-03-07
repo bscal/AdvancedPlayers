@@ -50,13 +50,9 @@ import net.minecraft.server.network.ServerPlayerEntity;
 		ServerPlayNetworking.send(Player, ECSManager.SYNC_CHANNEL, packetBuf);
 
 		Out.clear();
-		Sync.Components.clear();
-		Sync.AddedComponents.clear();
-		Sync.RemovedComponents.clear();
+		Sync.Clear();
 
 		long end = System.nanoTime() - start;
-		AdvancedPlayer.LOGGER.info(
-				String.format("Syncing id %d. Sizeof: %d\nTook: %dns, %dms", entityId, packetBuf.array().length, end,
-						end / 1000000));
+		AdvancedPlayer.LOGGER.info(String.format("Sending Entity %d. Sizeof: %d. Took: %dns, %dms", entityId, packetBuf.array().length, end, end / 1000000));
 	}
 }
