@@ -1,5 +1,35 @@
 package me.bscal.advancedplayer.common.food;
 
-public class FoodManager
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+import net.minecraft.item.FoodComponent;
+import net.minecraft.item.Item;
+
+public final class FoodManager
 {
+
+	public static final FoodComponent BreadSlices = new FoodComponent.Builder().hunger(1).saturationModifier(0.1f).build();
+
+	private static final Object2ObjectOpenHashMap<Item, MultiFood.Ingredient> ITEM_TO_INGREDIENTS = new Object2ObjectOpenHashMap<>();
+
+	public static void Register(Item item, MultiFood.Ingredient ingredient)
+	{
+		ITEM_TO_INGREDIENTS.put(item, ingredient);
+	}
+
+	public static MultiFood.Ingredient GetIngredient(Item item)
+	{
+		return ITEM_TO_INGREDIENTS.get(item);
+	}
+
+	public static boolean IsAnIngredient(Item item)
+	{
+		return ITEM_TO_INGREDIENTS.containsKey(item);
+	}
+
+	static
+	{
+
+	}
+
+
 }

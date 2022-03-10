@@ -4,6 +4,7 @@
   "package": "me.bscal.advancedplayer.mixin",
   "compatibilityLevel": "JAVA_17",
   "mixins": [
+    "FoodComponentAccessor",
     "LivingEntityMixin"
   ],
   "client": [
