@@ -11,7 +11,12 @@ import net.minecraft.util.registry.Registry;
 public final class ItemRegistry
 {
 
-	public static final MultiFoodItem BreadSlice = Register(IdOf("bread_slices"), new MultiFoodItem(new FabricItemSettings().group(ItemGroup.FOOD), FoodManager.BreadSlices));
+	public static MultiFoodItem BreadSlice;
+
+	public static void Init()
+	{
+		BreadSlice = Register(IdOf("sandwich"), new MultiFoodItem(new FabricItemSettings().group(ItemGroup.FOOD), FoodManager.BreadSlices));
+	}
 
 	public static MultiFoodItem Register(Identifier id, MultiFoodItem item)
 	{

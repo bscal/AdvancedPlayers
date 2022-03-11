@@ -1,6 +1,8 @@
 package me.bscal.advancedplayer;
 
+import com.esotericsoftware.kryo.Kryo;
 import me.bscal.advancedplayer.common.components.ComponentManager;
+import me.bscal.advancedplayer.common.items.ItemRegistry;
 import me.bscal.advancedplayer.common.mechanics.ecs.ECSManager;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
@@ -19,12 +21,20 @@ public class AdvancedPlayer implements ModInitializer
 
 	private static boolean SeasonsEnabled;
 
+	public static Kryo Kryo;
+
 	@Override
 	public void onInitialize()
 	{
+		Kryo = new Kryo();
+
+
+
 		SeasonsEnabled = FabricLoader.getInstance().isModLoaded("seasons");
 		LOGGER.info("MCSeasons status: Loaded = " + SeasonsEnabled);
 		LOGGER.setLevel(Level.ALL);
+
+		ItemRegistry.Init();
 
 		ServerLifecycleEvents.SERVER_STARTING.register(server -> {
 			ECSManager.Init(server);
