@@ -2,6 +2,7 @@ package me.bscal.advancedplayer.common.food;
 
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
+import com.google.gson.Gson;
 import me.bscal.advancedplayer.AdvancedPlayer;
 import net.minecraft.client.item.TooltipContext;
 import net.minecraft.entity.LivingEntity;
@@ -10,7 +11,10 @@ import net.minecraft.nbt.NbtCompound;
 import net.minecraft.text.Text;
 import org.jetbrains.annotations.NotNull;
 
+import javax.swing.text.html.Option;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Class that stores and handles "food" items that can contain multiple ingredients.
@@ -31,6 +35,15 @@ public class MultiFood
 	private static final Text INGREDIENTS_HEADER = Text.of("Ingredients:");
 	private static final String KEY = "multifood_bin_data";
 
+	public MultiFood()
+	{
+		Ingredients = new ArrayList<>();
+		OnEatEffects = new ArrayList<>();
+		TotalFoodGroups = new FoodGroups();
+		Cookable = new Cookable();
+		Perishable = new Perishable();
+	}
+
 	public void Serialize(@NotNull NbtCompound nbt)
 	{
 		Output output = new Output(64, 1024);
@@ -38,12 +51,18 @@ public class MultiFood
 		nbt.putByteArray(KEY, output.getBuffer());
 	}
 
-	public static MultiFood Deserialize(@NotNull NbtCompound nbt)
+	public static Optional<MultiFood> Deserialize(@NotNull NbtCompound nbt)
 	{
 		var buffer = nbt.getByteArray(KEY);
 		if (buffer == null) return null;
 		Input input = new Input(buffer);
-		return AdvancedPlayer.Kryo.readObject(input, MultiFood.class);
+		return Optional.ofNullable(AdvancedPlayer.Kryo.readObject(input, MultiFood.class));
+	}
+
+	public void PrintDebug()
+	{
+		String json = AdvancedPlayer.Gson.toJson(this);
+		AdvancedPlayer.LOGGER.info(json);
 	}
 
 	public void AddIngredient(Ingredient ingredient)
@@ -61,6 +80,7 @@ public class MultiFood
 
 	public void AppendTooltip(final ItemStack stack, @NotNull final List<Text> tooltip, final TooltipContext context)
 	{
+		if (Ingredients.isEmpty()) return;
 		tooltip.add(INGREDIENTS_HEADER);
 		for (var ingredient : Ingredients)
 		{
@@ -99,15 +119,8 @@ public class MultiFood
 
 	public static class Cookable
 	{
-		public boolean IsRaw;
-		public int TicksCooked;
-		public int TicksForCooked;
-		public int TicksForBurnt;
-
-		public boolean IsCookable()
-		{
-			return TicksForCooked == -1;
-		}
+		public long CookTime;
+		public long TimeTillCooked;
 	}
 
 	public static class Perishable
@@ -115,9 +128,9 @@ public class MultiFood
 		public long TicksForSpoiled;
 		public long SpawnedTick;
 
-		public boolean IsPerishable()
+		public boolean HasExpired()
 		{
-			return TicksForSpoiled == -1;
+			return System.currentTimeMillis() > SpawnedTick + TicksForSpoiled;
 		}
 	}
 

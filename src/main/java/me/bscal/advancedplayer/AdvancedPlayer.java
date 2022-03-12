@@ -1,6 +1,7 @@
 package me.bscal.advancedplayer;
 
 import com.esotericsoftware.kryo.Kryo;
+import com.google.gson.Gson;
 import me.bscal.advancedplayer.common.components.ComponentManager;
 import me.bscal.advancedplayer.common.items.ItemRegistry;
 import me.bscal.advancedplayer.common.mechanics.ecs.ECSManager;
@@ -22,11 +23,14 @@ public class AdvancedPlayer implements ModInitializer
 	private static boolean SeasonsEnabled;
 
 	public static Kryo Kryo;
+	public static Gson Gson;
 
 	@Override
 	public void onInitialize()
 	{
 		Kryo = new Kryo();
+		Gson = new Gson();
+		Gson = Gson.newBuilder().setPrettyPrinting().create();
 
 
 

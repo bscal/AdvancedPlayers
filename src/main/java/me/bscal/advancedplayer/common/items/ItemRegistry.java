@@ -2,6 +2,7 @@ package me.bscal.advancedplayer.common.items;
 
 import me.bscal.advancedplayer.AdvancedPlayer;
 import me.bscal.advancedplayer.common.food.FoodManager;
+import me.bscal.advancedplayer.common.food.MultiFood;
 import net.fabricmc.fabric.api.item.v1.FabricItemSettings;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemGroup;
@@ -15,7 +16,12 @@ public final class ItemRegistry
 
 	public static void Init()
 	{
-		BreadSlice = Register(IdOf("sandwich"), new MultiFoodItem(new FabricItemSettings().group(ItemGroup.FOOD), FoodManager.BreadSlices));
+		BreadSlice = Register(IdOf("sandwich"), new MultiFoodItem(new FabricItemSettings().group(ItemGroup.FOOD), FoodManager.BreadSlices,
+				() -> {
+					var multifood = new MultiFood();
+					multifood.Perishable.SpawnedTick = System.currentTimeMillis();
+					return multifood;
+				}));
 	}
 
 	public static MultiFoodItem Register(Identifier id, MultiFoodItem item)
