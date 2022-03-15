@@ -1,6 +1,7 @@
 package me.bscal.advancedplayer.common.items;
 
 import me.bscal.advancedplayer.AdvancedPlayer;
+import me.bscal.advancedplayer.common.food.FoodManager;
 import me.bscal.advancedplayer.common.food.MultiFood;
 import net.minecraft.client.item.TooltipContext;
 import net.minecraft.entity.LivingEntity;
@@ -37,14 +38,31 @@ public class MultiFoodItem extends Item
 			m_MultiFoodFactory = supplier;
 	}
 
-	public ItemStack CreateMultiFood(ItemStack itemStack)
+	public ItemStack CreateMultiFood(@NotNull ItemStack itemStack)
 	{
-		var nbt = itemStack.getOrCreateNbt();
 		var multifood =  m_MultiFoodFactory.get();
 		AdvancedPlayer.Kryo.copy(multifood);
 		multifood.PrintDebug();
-		multifood.Serialize(nbt);
+		multifood.Serialize(itemStack);
 		return itemStack;
+	}
+
+	public boolean TryAddIngredient(ItemStack srcStack, ItemStack destStack)
+	{
+		return TryAddIngredient(srcStack.getItem(), destStack);
+	}
+
+	public boolean TryAddIngredient(Item src, ItemStack destStack)
+	{
+		if (src == null || destStack == null) return false;
+		MultiFood.Ingredient srcIngredient = FoodManager.GetIngredient(src);
+		if (srcIngredient == null) return false;
+
+		Optional<MultiFood> multiFood = GetMultiFood(destStack);
+		if (multiFood.isEmpty()) return false;
+
+		multiFood.get().AddIngredient(destStack, srcIngredient);
+		return true;
 	}
 
 	@Override
@@ -55,7 +73,7 @@ public class MultiFoodItem extends Item
 
 	public Optional<MultiFood> GetMultiFood(ItemStack itemStack)
 	{
-		if (itemStack.getItem() instanceof MultiFoodItem)
+		if (itemStack != null && itemStack.getItem() instanceof MultiFoodItem)
 		{
 			var nbt = itemStack.getNbt();
 			if (nbt == null) return Optional.empty();

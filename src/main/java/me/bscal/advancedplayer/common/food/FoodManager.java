@@ -3,6 +3,7 @@ package me.bscal.advancedplayer.common.food;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import net.minecraft.item.FoodComponent;
 import net.minecraft.item.Item;
+import net.minecraft.item.Items;
 
 public final class FoodManager
 {
@@ -11,9 +12,10 @@ public final class FoodManager
 
 	private static final Object2ObjectOpenHashMap<Item, MultiFood.Ingredient> ITEM_TO_INGREDIENTS = new Object2ObjectOpenHashMap<>();
 
-	public static void Register(Item item, MultiFood.Ingredient ingredient)
+	public static MultiFood.Ingredient Register(Item item, MultiFood.Ingredient ingredient)
 	{
 		ITEM_TO_INGREDIENTS.put(item, ingredient);
+		return ingredient;
 	}
 
 	public static MultiFood.Ingredient GetIngredient(Item item)
@@ -28,7 +30,9 @@ public final class FoodManager
 
 	static
 	{
-
+		var carrot = Register(Items.CARROT, new MultiFood.Ingredient("Carrots"));
+		carrot.Type = MultiFood.FoodType.Plain;
+		carrot.FoodGroups.Calories = 10;
 	}
 
 
