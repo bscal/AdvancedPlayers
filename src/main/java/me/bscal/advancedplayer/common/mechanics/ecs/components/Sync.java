@@ -23,7 +23,7 @@ import java.util.Set;
 
 	/**
 	 * Server and client entityId's are not the same.
-	 * The NetworkId is the server's entityId. This way we can look up entities on the client
+	 * Uses Minecraft's ServerPlayerEntity.getId() as the NetworkId
 	 */
 	public int NetworkId;
 

@@ -1,4 +1,4 @@
-package me.bscal.advancedplayer.common.mechanics.ecs.components;
+package me.bscal.advancedplayer.common.mechanics.ecs.componentTypes;
 
 import com.artemis.Component;
 

@@ -10,6 +10,5 @@ import me.bscal.advancedplayer.common.mechanics.ecs.components.RefPlayer;
 	@Override
 	protected void process(int entityId)
 	{
-		AdvancedPlayer.LOGGER.info("Printing is a test for " + entityId);
 	}
 }

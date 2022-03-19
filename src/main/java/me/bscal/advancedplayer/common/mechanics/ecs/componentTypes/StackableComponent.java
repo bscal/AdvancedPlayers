@@ -1,4 +1,4 @@
-package me.bscal.advancedplayer.common.mechanics.ecs.components;
+package me.bscal.advancedplayer.common.mechanics.ecs.componentTypes;
 
 /**
  * A component which can internally handle multiple stacks of itself with different durations.

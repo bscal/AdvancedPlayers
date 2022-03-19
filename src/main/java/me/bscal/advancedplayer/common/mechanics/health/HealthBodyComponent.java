@@ -2,7 +2,6 @@ package me.bscal.advancedplayer.common.mechanics.health;
 
 import me.bscal.advancedplayer.common.mechanics.body.EntityBodyComponent;
 import net.minecraft.entity.LivingEntity;
-import net.minecraft.nbt.NbtCompound;
 import org.jetbrains.annotations.NotNull;
 
 public class HealthBodyComponent extends EntityBodyComponent
@@ -39,17 +38,4 @@ public class HealthBodyComponent extends EntityBodyComponent
 	{
 	}
 
-	@Override
-	public void writeToNbt(NbtCompound nbt)
-	{
-		super.writeToNbt(nbt);
-		nbt.putInt("HeartRate", HeartRate);
-	}
-
-	@Override
-	public void readFromNbt(NbtCompound nbt)
-	{
-		super.readFromNbt(nbt);
-		HeartRate = nbt.getInt("HeartRate");
-	}
 }

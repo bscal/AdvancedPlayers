@@ -12,11 +12,16 @@ import net.minecraft.util.registry.Registry;
 public final class ItemRegistry
 {
 
-	public static MultiFoodItem BreadSlice;
+	public static MultiFoodItem Sandwich;
+	//public static MultiFoodItem Stew;
+	//public static MultiFoodItem Pasta;
+	//public static MultiFoodItem Brownie;
+	//public static MultiFoodItem Salad;
+	//public static MultiFoodItem Pizza;
 
 	public static void Init()
 	{
-		BreadSlice = Register(IdOf("sandwich"), new MultiFoodItem(new FabricItemSettings().group(ItemGroup.FOOD), FoodManager.BreadSlices,
+		Sandwich = Register(IdOf("sandwich"), new MultiFoodItem(new FabricItemSettings().group(ItemGroup.FOOD), FoodManager.BreadSlices,
 				() -> {
 					var multifood = new MultiFood();
 					multifood.Perishable.SpawnedTick = System.currentTimeMillis();

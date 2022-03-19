@@ -10,14 +10,18 @@ import com.esotericsoftware.kryo.io.ByteBufferInput;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufOutputStream;
 import io.netty.buffer.Unpooled;
+import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import me.bscal.advancedplayer.AdvancedPlayer;
+import me.bscal.advancedplayer.common.mechanics.ecs.componentTypes.StackableComponent;
 import me.bscal.advancedplayer.common.mechanics.ecs.components.*;
 import me.bscal.advancedplayer.common.mechanics.ecs.systems.BleedSystem;
 import me.bscal.advancedplayer.common.mechanics.ecs.systems.DebugSystem;
 import me.bscal.advancedplayer.common.mechanics.ecs.systems.SyncSystem;
 import me.bscal.advancedplayer.common.mechanics.ecs.systems.TemperatureSystem;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.server.MinecraftServer;
@@ -30,6 +34,8 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -56,10 +62,13 @@ public final class ECSManager
 	public static int ClientEntityId = -1;
 	public static EntitySubscription Subscription;
 
+	// TODO
+	public static Int2IntOpenHashMap NetworkIdToEntityId;
+
 	/**
 	 * Initializes the main world. This is updated server side, and all components should be created in here
 	 */
-	public static void Init(MinecraftServer server)
+	public static void InitServer(MinecraftServer server)
 	{
 		SerializationManager = new WorldSerializationManager();
 
@@ -193,7 +202,7 @@ public final class ECSManager
 		PlayerToEntityId.put(player, entityId);
 
 		var buffer = new PacketByteBuf(Unpooled.buffer(4));
-		buffer.writeInt(entityId);
+		buffer.writeInt(player.getId());
 		ServerPlayNetworking.send(player, CREATE_CHANNEL, buffer);
 	}
 
@@ -325,4 +334,44 @@ public final class ECSManager
 		if (entity == null) return null;
 		return entity.getComponent(clazz);
 	}
+
+	public static boolean IsClient(int networkId)
+	{
+		if (MinecraftClient.getInstance().player == null) return false;
+		return MinecraftClient.getInstance().player.getId() == networkId;
+	}
+
+	public static class MultiMap
+	{
+		private final Int2ObjectOpenHashMap<List<Component>> m_InternalMap;
+
+		MultiMap()
+		{
+			m_InternalMap = new Int2ObjectOpenHashMap<>();
+		}
+
+		public List<Component> Get(int netId)
+		{
+			var list = m_InternalMap.get(netId);
+			return (list == null) ? Collections.emptyList() : list;
+		}
+
+		public void Add(int netId, Component component)
+		{
+			var list = m_InternalMap.get(netId);
+			if (list == null)
+			{
+				list = new ArrayList<>();
+				m_InternalMap.put(netId, list);
+			}
+			list.add(component);
+		}
+
+		public void Remove(int netId)
+		{
+			m_InternalMap.remove(netId);
+		}
+
+	}
+
 }

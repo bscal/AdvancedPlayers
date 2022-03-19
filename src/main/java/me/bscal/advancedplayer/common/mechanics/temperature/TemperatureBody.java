@@ -1,15 +1,12 @@
 package me.bscal.advancedplayer.common.mechanics.temperature;
 
 import me.bscal.advancedplayer.client.AdvancedPlayerClient;
-import me.bscal.advancedplayer.common.components.PlayerStatsComponent;
-import me.bscal.advancedplayer.common.components.ComponentManager;
 import me.bscal.advancedplayer.common.mechanics.body.EntityBodyComponent;
 import me.bscal.advancedplayer.common.mechanics.body.FloatBodyPart;
 import me.bscal.seasons.api.SeasonAPI;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.nbt.NbtCompound;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
@@ -46,20 +43,6 @@ public class TemperatureBody extends EntityBodyComponent
 	public TemperatureBody(PlayerEntity player)
 	{
 		super(player, BodyPartTypes.values().length);
-	}
-
-	@Override
-	public void serverTick()
-	{
-		// Updates every 64 ticks (3.2 secs)
-		// I was looking into this, and I was not sure if Java's
-		// irem instruction optimized to use AND, I presume it would,
-		// but I just force it to use AND in case
-		if ((m_UpdateCounter++ & UPDATES_PER_TICK) == 0)
-		{
-			UpdateTemperatures();
-			super.serverTick(); // Checks if dirty and syncs
-		}
 	}
 
 	public void AddWork(float amount)
@@ -123,7 +106,7 @@ public class TemperatureBody extends EntityBodyComponent
 			//AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("wetness = " + wetness);
 			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("TemperatureShiftType = " + ShiftType);
 			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("biomeId = " + biomeId);
-			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("season = " + SeasonAPI.getSeason(biomeId));
+			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("season = " + SeasonAPI.getSeasonByBiome(biomeId));
 			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("climate = " + climate);
 		}
 	}
@@ -187,28 +170,6 @@ public class TemperatureBody extends EntityBodyComponent
 	public void Sync()
 	{
 		//ComponentManager.BODY_TEMPERATURE.sync(m_Provider);
-	}
-
-	@Override
-	public void writeToNbt(NbtCompound nbt)
-	{
-		super.writeToNbt(nbt);
-		nbt.putFloat("Work", Work);
-		nbt.putFloat("HeatLossRate", HeatLossRate);
-		nbt.putFloat("BodyTemperature", BodyTemperature);
-		nbt.putFloat("OutSideTemperature", OutSideTemperature);
-		nbt.putInt("ShiftType", ShiftType.ordinal());
-	}
-
-	@Override
-	public void readFromNbt(NbtCompound nbt)
-	{
-		super.readFromNbt(nbt);
-		Work = nbt.getFloat("Work");
-		HeatLossRate = nbt.getFloat("HeatLossRate");
-		BodyTemperature = nbt.getFloat("BodyTemperature");
-		OutSideTemperature = nbt.getFloat("OutSideTemperature");
-		ShiftType = TemperatureShiftType.values()[nbt.getInt("ShiftType")];
 	}
 
 	public enum TemperatureShiftType

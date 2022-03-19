@@ -47,7 +47,7 @@ public class TemperatureBiomeRegistry
 
 		public float GetCurrentTemperature()
 		{
-			return TemperaturePerSeason[(AdvancedPlayer.IsUsingSeasons()) ? SeasonAPI.getSeasonId() : 0];
+			return TemperaturePerSeason[(AdvancedPlayer.IsUsingSeasons()) ? SeasonAPI.getInternalSeasonId() : 0];
 		}
 
 		@Override

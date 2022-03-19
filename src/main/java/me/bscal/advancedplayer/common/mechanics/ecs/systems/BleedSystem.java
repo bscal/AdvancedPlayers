@@ -2,8 +2,7 @@ package me.bscal.advancedplayer.common.mechanics.ecs.systems;
 
 import com.artemis.ComponentMapper;
 import com.artemis.annotations.All;
-import com.artemis.systems.IteratingSystem;
-import com.artemis.utils.IntBag;
+import com.artemis.systems.IntervalIteratingSystem;
 import me.bscal.advancedplayer.common.mechanics.ecs.ECSManager;
 import me.bscal.advancedplayer.common.mechanics.ecs.components.Bleed;
 import me.bscal.advancedplayer.common.mechanics.ecs.components.RefPlayer;
@@ -12,40 +11,55 @@ import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.text.LiteralText;
+import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 
-@All({ Bleed.class, RefPlayer.class, Sync.class }) public class BleedSystem extends IteratingSystem implements ServerPlayerEvents.AfterRespawn
+@All({ RefPlayer.class, Sync.class }) public class BleedSystem extends IntervalIteratingSystem implements ServerPlayerEvents.AfterRespawn
 {
+	/**
+	 * Processes every 60 ticks (3 secs)
+	 */
+	private static final int TIMESTEP = 60;
 
-	private ComponentMapper<Bleed> Bleeds;
-	private ComponentMapper<RefPlayer> Players;
-	private ComponentMapper<Sync> SyncPlayers;
+	private ComponentMapper<Bleed> m_Bleeds;
+	private ComponentMapper<RefPlayer> m_Players;
+
+	public BleedSystem()
+	{
+		super(null, TIMESTEP);
+	}
 
 	@Override
 	protected void process(int entityId)
 	{
-		var Bleed = Bleeds.get(entityId);
-		var Player = Players.get(entityId).Player;
-		var Sync = SyncPlayers.get(entityId);
+		var bleed = m_Bleeds.get(entityId);
+		var player = m_Players.get(entityId).Player;
 
-		var it = Bleed.Durations.iterator();
-		while (it.hasNext())
+		bleed.Duration -= TIMESTEP;
+		if (bleed.Duration < 1 || bleed.IsBandaged)
 		{
-			int i = it.nextIndex();
-
-			if (IsValid(Player))
-				Player.damage(DamageSource.GENERIC, Bleed.Damage);
-
-			int duration = Bleed.Durations.getInt(i) - 1;
-			if (duration < 1) it.remove();
-			else Bleed.Durations.set(i, duration);
-
-			Sync.Add(Bleed, Bleed.getClass());
+			m_Bleeds.remove(entityId);
+			return;
 		}
 
-		if (Bleed.IsEmpty())
+		if (IsValid(player))
 		{
-			Bleeds.remove(entityId);
+			player.damage(DamageSource.GENERIC, bleed.Damage);
+			player.sendMessage(GenerateText(player, bleed), false);
 		}
+	}
+
+	private Text GenerateText(PlayerEntity player, Bleed bleed)
+	{
+		StringBuilder sb = new StringBuilder();
+		sb.append("You seem to be bleeding");
+		if (bleed.IsInfected) sb.append(" and the wounds is festering");
+		sb.append("...");
+
+		LiteralText text = new LiteralText(sb.toString());
+		text.formatted(Formatting.RED);
+		return text;
 	}
 
 	private boolean IsValid(PlayerEntity p)
@@ -56,7 +70,8 @@ import net.minecraft.server.network.ServerPlayerEntity;
 	@Override
 	public void afterRespawn(ServerPlayerEntity oldPlayer, ServerPlayerEntity newPlayer, boolean alive)
 	{
-
+		var entityId = ECSManager.PlayerToEntityId.getInt(newPlayer);
+		m_Bleeds.remove(entityId);
 	}
 
 	@Override
@@ -65,14 +80,5 @@ import net.minecraft.server.network.ServerPlayerEntity;
 		super.initialize();
 
 		ServerPlayerEvents.AFTER_RESPAWN.register(this);
-	}
-
-	@Override
-	protected void removed(int entityId)
-	{
-		super.removed(entityId);
-
-		var sync = SyncPlayers.get(entityId);
-		sync.Remove(Bleed.class);
 	}
 }

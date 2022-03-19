@@ -33,57 +33,56 @@ import net.minecraft.world.biome.Biome;
 	@Override
 	protected void process(int entityId)
 	{
-		AdvancedPlayer.LOGGER.info("temping " + entityId);
-		var Temperature = Temperatures.get(entityId);
-		var Player = Players.get(entityId).Player;
+		var temperature = Temperatures.get(entityId);
+		var player = Players.get(entityId).Player;
 		var sync = SyncPlayers.get(entityId);
 
-		var WetnessComponent = PlayerWetness.get(entityId);
-		float Wetness = (WetnessComponent == null) ? 0 : WetnessComponent.Wetness;
+		var wetness = PlayerWetness.get(entityId);
+		float wetnessValue = (wetness == null) ? 0 : wetness.Wetness;
 
-		BlockPos pos = Player.getBlockPos();
-		Biome biome = Player.world.getBiome(pos);
-		Identifier biomeId = SeasonAPI.getBiomeId(biome, Player.world);
+		BlockPos pos = player.getBlockPos();
+		Biome biome = player.world.getBiome(pos);
+		Identifier biomeId = SeasonAPI.getBiomeId(biome, player.world);
 		TemperatureBiomeRegistry.BiomeClimate climate = TemperatureBiomeRegistry.BiomesToClimateMap.get(biomeId);
 		float airTemperature = climate.GetCurrentTemperature();
 		float yTemperature = GetYTemperature(pos);
-		float lightTemperature = GetLightTemperature(Player.world.getLightLevel(LightType.SKY, pos));
+		float lightTemperature = GetLightTemperature(player.world.getLightLevel(LightType.SKY, pos));
 		float humidity = 0.5f;
 		float wind = 3f;
-		TemperatureClothing.ClothingData clothingData = GetProviderClothingData(Player);
-		Temperature.Insulation = clothingData.Insulation;
-		Temperature.WindResistance = clothingData.WindResistance;
+		TemperatureClothing.ClothingData clothingData = GetProviderClothingData(player);
+		temperature.Insulation = clothingData.Insulation;
+		temperature.WindResistance = clothingData.WindResistance;
 
 		float m_BaseWork = 1.0f; // Players body always doing some work.
-		Temperature.BodyTemperature = Temperature.CoreBodyTemperature + Temperature.Work + m_BaseWork;
-		Temperature.OutSideTemperature = airTemperature + yTemperature + lightTemperature - (wind - Temperature.WindResistance);
-		float diff = Temperature.BodyTemperature - Temperature.OutSideTemperature;
-		Temperature.ShiftType = TemperatureBody.TemperatureShiftType.TypeForTemp(Temperature.OutSideTemperature);
+		temperature.BodyTemperature = temperature.CoreBodyTemperature + temperature.Work + m_BaseWork;
+		temperature.OutSideTemperature = airTemperature + yTemperature + lightTemperature - (wind - temperature.WindResistance);
+		float diff = temperature.BodyTemperature - temperature.OutSideTemperature;
+		temperature.ShiftType = TemperatureBody.TemperatureShiftType.TypeForTemp(temperature.OutSideTemperature);
 
 		// 100% insulation would mean you lose 0 heat, 0% you lose all the heat;
-		Temperature.HeatLossRate = MathHelper.lerp(Temperature.Insulation, diff / 200, .0f);
+		temperature.HeatLossRate = MathHelper.lerp(temperature.Insulation, diff / 200, .0f);
 		// Since Work is temporary
-		Temperature.Work = MathHelper.clamp(Temperature.Work - Temperature.HeatLossRate, 0, 10f);
+		temperature.Work = MathHelper.clamp(temperature.Work - temperature.HeatLossRate, 0, 10f);
 		// Body moving towards the outside temperature. Not an expert at thermodynamics but this seems like a
 		// decent system even though not 100% accurate
-		Temperature.CoreBodyTemperature = MathHelper.clamp(Temperature.CoreBodyTemperature, TemperatureBody.MIN_COLD, TemperatureBody.MAX_HOT);
-		Temperature.CoreBodyTemperature = MathHelper.lerp(Temperature.HeatLossRate, Temperature.CoreBodyTemperature, Temperature.OutSideTemperature);
+		temperature.CoreBodyTemperature = MathHelper.clamp(temperature.CoreBodyTemperature, TemperatureBody.MIN_COLD, TemperatureBody.MAX_HOT);
+		temperature.CoreBodyTemperature = MathHelper.lerp(temperature.HeatLossRate, temperature.CoreBodyTemperature, temperature.OutSideTemperature);
 		// 100% would not allow evaporation to take place. This does not matter if it is cold.
-		float delta = TemperatureBody.TemperatureShiftType.IsWarming(Temperature.ShiftType) ? MathHelper.lerp(humidity, .1f, .0f) : .1f;
-		Temperature.CoreBodyTemperature = MathHelper.lerp(delta, Temperature.CoreBodyTemperature, TemperatureBody.NORMAL);
+		float delta = TemperatureBody.TemperatureShiftType.IsWarming(temperature.ShiftType) ? MathHelper.lerp(humidity, .1f, .0f) : .1f;
+		temperature.CoreBodyTemperature = MathHelper.lerp(delta, temperature.CoreBodyTemperature, TemperatureBody.NORMAL);
 
-		sync.Add(Temperature, Temperature.class);
+		sync.Add(temperature, Temperature.class);
 
 		if (FabricLoader.getInstance().isDevelopmentEnvironment() && FabricLoader.getInstance().getEnvironmentType() == EnvType.CLIENT)
 		{
 			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.clear();
-			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("CoreBodyTemperature = " + Temperature.CoreBodyTemperature);
-			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("BodyTemperature = " + Temperature.BodyTemperature);
-			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("Work = " + Temperature.Work);
-			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("outsideTemperature = " + Temperature.OutSideTemperature);
-			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("heatLossRate = " + Temperature.HeatLossRate);
-			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("TemperatureShiftType = " + Temperature.ShiftType);
-			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add(String.format("Wetness: Has %s, Value %.2f", Wetness > 0, Wetness));
+			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("CoreBodyTemperature = " + temperature.CoreBodyTemperature);
+			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("BodyTemperature = " + temperature.BodyTemperature);
+			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("Work = " + temperature.Work);
+			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("outsideTemperature = " + temperature.OutSideTemperature);
+			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("heatLossRate = " + temperature.HeatLossRate);
+			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("TemperatureShiftType = " + temperature.ShiftType);
+			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add(String.format("Wetness: Has %s, Value %.2f", wetnessValue > 0, wetnessValue));
 			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("season = " + SeasonAPI.getSeason());
 			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("airTemperature = " + airTemperature);
 			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("yTemperature = " + yTemperature);
