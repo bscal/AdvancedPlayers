@@ -19,6 +19,7 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.registry.RegistryEntry;
 import net.minecraft.world.LightType;
 import net.minecraft.world.biome.Biome;
 
@@ -41,8 +42,8 @@ import net.minecraft.world.biome.Biome;
 		float wetnessValue = (wetness == null) ? 0 : wetness.Wetness;
 
 		BlockPos pos = player.getBlockPos();
-		Biome biome = player.world.getBiome(pos);
-		Identifier biomeId = SeasonAPI.getBiomeId(biome, player.world);
+		RegistryEntry<Biome> biome = player.world.getBiome(pos);
+		Identifier biomeId = SeasonAPI.getBiomeId(biome.value(), player.world);
 		TemperatureBiomeRegistry.BiomeClimate climate = TemperatureBiomeRegistry.BiomesToClimateMap.get(biomeId);
 		float airTemperature = climate.GetCurrentTemperature();
 		float yTemperature = GetYTemperature(pos);

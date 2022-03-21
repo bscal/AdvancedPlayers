@@ -10,6 +10,7 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.registry.RegistryEntry;
 import net.minecraft.world.LightType;
 import net.minecraft.world.biome.Biome;
 
@@ -53,8 +54,8 @@ public class TemperatureBody extends EntityBodyComponent
 	public void UpdateTemperatures()
 	{
 		BlockPos pos = m_Provider.getBlockPos();
-		Biome biome = m_Provider.world.getBiome(pos);
-		Identifier biomeId = SeasonAPI.getBiomeId(biome, m_Provider.world);
+		RegistryEntry<Biome> biome = m_Provider.world.getBiome(pos);
+		Identifier biomeId = SeasonAPI.getBiomeId(biome.value(), m_Provider.world);
 		TemperatureBiomeRegistry.BiomeClimate climate = TemperatureBiomeRegistry.BiomesToClimateMap.get(biomeId);
 		float airTemperature = climate.GetCurrentTemperature();
 		float yTemperature = GetYTemperature(pos);

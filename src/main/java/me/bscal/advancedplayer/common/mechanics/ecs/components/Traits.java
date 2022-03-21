@@ -1,39 +1,50 @@
 package me.bscal.advancedplayer.common.mechanics.ecs.components;
 
 import com.artemis.Component;
-import com.artemis.annotations.Transient;
-import net.minecraft.text.TextColor;
-import net.minecraft.util.Formatting;
+import net.minecraft.entity.LivingEntity;
 import net.minecraft.util.math.ColorHelper;
 
+import java.util.ArrayList;
 import java.util.List;
 
-@Transient public class Traits extends Component
+public class Traits extends Component
 {
 
 	public float TotalTraitWeight;
 	public List<Trait> Traits;
 
-	public static class Trait extends Component
+	public Traits()
 	{
-		public final float Weight;
+		Traits = new ArrayList<>();
+	}
 
-		public Trait()
-		{
-			Weight = 0;
-		}
+	public void AddTrait(Trait trait)
+	{
+		if (Traits.contains(trait)) return;
+		Traits.add(trait);
+		TotalTraitWeight += trait.Weight;
+	}
 
-		public Trait(float weight)
-		{
-			Weight = weight;
-		}
+	public void RemoveTrait(Trait trait)
+	{
+		Traits.remove(trait);
+		TotalTraitWeight -= trait.Weight;
+	}
+
+	public record Trait(String Name, String Desc, float Weight, TraitOnTickFunction TickFunction)
+	{
+		public static final Trait STRONG = new Trait("trait:strong:name", "trait:strong:desc", 6f, null);
+	}
+
+	public interface TraitOnTickFunction
+	{
+		void OnTick(LivingEntity entity, Trait trait);
 	}
 
 	public enum TraitType
 	{
-		Neutral("Neutral", ColorHelper.Argb.getArgb(255, 64, 64, 64)),
-		Good("Good", ColorHelper.Argb.getArgb(255, 40, 200, 40)),
-		Bad("Bad", ColorHelper.Argb.getArgb(255, 200, 40, 40));
+		Neutral("Neutral", ColorHelper.Argb.getArgb(255, 64, 64, 64)), Good("Good", ColorHelper.Argb.getArgb(255, 40, 200, 40)), Bad("Bad",
+			ColorHelper.Argb.getArgb(255, 200, 40, 40));
 
 		public final String Name;
 		public final int Color;
