@@ -15,7 +15,10 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import me.bscal.advancedplayer.AdvancedPlayer;
 import me.bscal.advancedplayer.common.mechanics.ecs.componentTypes.StackableComponent;
-import me.bscal.advancedplayer.common.mechanics.ecs.components.*;
+import me.bscal.advancedplayer.common.mechanics.ecs.components.RefPlayer;
+import me.bscal.advancedplayer.common.mechanics.ecs.components.Sync;
+import me.bscal.advancedplayer.common.mechanics.ecs.components.Temperature;
+import me.bscal.advancedplayer.common.mechanics.ecs.components.Wetness;
 import me.bscal.advancedplayer.common.mechanics.ecs.systems.BleedSystem;
 import me.bscal.advancedplayer.common.mechanics.ecs.systems.DebugSystem;
 import me.bscal.advancedplayer.common.mechanics.ecs.systems.SyncSystem;
@@ -293,10 +296,8 @@ public final class ECSManager
 		}
 
 		long end = System.nanoTime() - start;
-		AdvancedPlayer.LOGGER.info(
-				String.format("Reading Entity %d. Adds %d, Removes %d. Took: %dns, %dms. ", serverSync.NetworkId, serverSync.AddedComponents.size(),
-						serverSync.RemovedComponents.size(), end, end / 1000000));
-		AdvancedPlayer.LOGGER.info("Was entity found? " + found);
+		AdvancedPlayer.LOGGER.info(String.format("Reading Entity %d. Sizeof: %d. Adds %d, Removes %d. Took: %dns, %dms. ", serverSync.NetworkId, buffer.length,
+				serverSync.AddedComponents.size(), serverSync.RemovedComponents.size(), end, end / 1000000));
 	}
 
 	public static void InitEntity(EntityEdit edit, List<Sync.AddContainer> components, Set<Sync.ClassContainer> removedComponents)

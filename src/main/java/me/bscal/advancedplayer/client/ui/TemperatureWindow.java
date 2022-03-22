@@ -31,7 +31,7 @@ import net.minecraft.util.Identifier;
 	{
 		var client = MinecraftClient.getInstance();
 		if (client.player == null) return;
-
+		if (true) return;
 		Temperature temperature = (Temperature) ECSManager.GetClientComponent(Temperature.class);
 		if (temperature == null) return;
 
