@@ -1,6 +1,7 @@
 package me.bscal.advancedplayer.mixin;
 
 import net.minecraft.block.BlockState;
+import net.minecraft.block.FluidBlock;
 import net.minecraft.fluid.FlowableFluid;
 import net.minecraft.fluid.Fluid;
 import net.minecraft.item.BucketItem;
@@ -19,7 +20,7 @@ import org.spongepowered.asm.mixin.injection.ModifyArg;
 			"Lnet/minecraft/block/BlockState;I)Z"), index = 1)
 	public BlockState setBlockStartMixin(BlockState state)
 	{
-		return fluid.getDefaultState().with(FlowableFluid.LEVEL, 8).getBlockState();
+		return state.with(FluidBlock.LEVEL, 8);
 	}
 
 }

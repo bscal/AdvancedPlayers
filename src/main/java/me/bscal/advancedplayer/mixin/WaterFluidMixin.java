@@ -1,11 +1,15 @@
 package me.bscal.advancedplayer.mixin;
 
+import net.minecraft.block.FluidBlock;
 import net.minecraft.fluid.Fluid;
 import net.minecraft.fluid.FluidState;
 import net.minecraft.fluid.WaterFluid;
 import net.minecraft.state.StateManager;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.SoftOverride;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(WaterFluid.class) public abstract class WaterFluidMixin extends FlowableFluidMixin
@@ -29,10 +33,17 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 			return true;
 		}*/
 
-/*		public int getLevel(FluidState state)
+		@Override
+		public int getLevel(FluidState state)
 		{
-			return 8;
-		}*/
+			state.getFluid();
+			int fLvl;
+			if (state.contains(LEVEL))
+				fLvl = state.get(LEVEL);
+			else
+				fLvl = 8;
+			return fLvl;
+		}
 
 	}
 }
