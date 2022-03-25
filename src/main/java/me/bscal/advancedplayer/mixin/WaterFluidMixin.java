@@ -36,7 +36,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 		@Override
 		public int getLevel(FluidState state)
 		{
-			state.getFluid();
 			int fLvl;
 			if (state.contains(LEVEL))
 				fLvl = state.get(LEVEL);

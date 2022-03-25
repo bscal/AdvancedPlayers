@@ -22,6 +22,11 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Random;
+
 @Mixin(FlowableFluid.class) public abstract class FlowableFluidMixin extends Fluid
 {
 
@@ -53,14 +58,23 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 	@Inject(method = "getBlockStateLevel", cancellable = true, at = @At(value = "RETURN", ordinal = 0))
 	private static void getBlockStateLevel(FluidState state, CallbackInfoReturnable<Integer> cir)
 	{
-		int level = MathHelper.clamp(state.getLevel(),0, 8);
+		int level = Math.min(Math.min(state.getLevel(), 8) + (state.get(FALLING) ? 8 : 0), 15);
 		cir.setReturnValue(level);
 	}
 
 	private static final int MIN_LEVEL = 7;
 	private static final int MAX_LEVEL = 0;
 	private static final int REMOVE_LEVEL = Integer.MIN_VALUE;
+	private static final int FULL_LEVEL = 8;
 
+	private static final Random Random = new Random();
+	private static final List<Direction> ShuffledDirections = new ArrayList<>(
+			List.of(new Direction[] { Direction.NORTH, Direction.EAST, Direction.SOUTH, Direction.WEST }));
+
+	/**
+	 * TODO lava
+	 * 	TODO improve filling liquids with bucket
+	 */
 	@Inject(method = "onScheduledTick", at = @At(value = "HEAD"), cancellable = true)
 	protected void process(World world, BlockPos pos, FluidState state, CallbackInfo ci)
 	{
@@ -77,13 +91,13 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 			FluidState downFluidState = downState.getFluidState();
 
 			int downLevel = GetLevel(downState, downFluidState);
-			if (this.canFlow(world, pos, blockState, Direction.DOWN, downPos, downState, downFluidState, downFluidState.getFluid()))
+			if (CanWaterFall(state, level, downFluidState, downLevel) || this.canFlow(world, pos, blockState, Direction.DOWN, downPos, downState,
+					downFluidState, downFluidState.getFluid()))
 			{
 				if (downState instanceof FluidFillable)
 				{
 					((FluidFillable) downState.getBlock()).tryFillWithFluid(world, downPos, downState, downFluidState);
 					level = REMOVE_LEVEL;
-					update = true;
 				}
 				else
 				{
@@ -91,8 +105,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 					{
 						this.beforeBreakingBlock(world, downPos, downState);
 					}
-					// 8 - 1 = 7
-					int diff = 7 - downLevel;
+
 					int newLevel;
 					if (downFluidState.isEmpty())
 					{
@@ -101,20 +114,22 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 					}
 					else
 					{
-						newLevel = downLevel - diff;
-						level -= diff;
+						int[] diff = Diff(downFluidState, downLevel, level);
+						newLevel = diff[0];
+						level = diff[1];
 					}
 					var l = FluidToState(state, newLevel);
 					world.setBlockState(downPos, l, Block.NOTIFY_ALL);
-					update = true;
 				}
+				update = true;
 			}
 
 			if (!update)
 			{
-				for (Direction direction : Direction.Type.HORIZONTAL)
+				Collections.shuffle(ShuffledDirections, Random);
+				for (Direction direction : ShuffledDirections)
 				{
-					if (level == MIN_LEVEL) break;
+					if (level == MIN_LEVEL || level == REMOVE_LEVEL) break;
 
 					BlockPos dirPos = pos.offset(direction);
 					BlockState dirState = world.getBlockState(dirPos);
@@ -135,10 +150,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 							{
 								this.beforeBreakingBlock(world, dirPos, dirState);
 							}
-							int newLevel = (dirFluidState.isEmpty()) ? 7 : dirLevel - 1;
-							var l = FluidToState(state, newLevel);
+							level = ShrinkLevel(level);
+							var l = FluidToState(state, GrowLevel(dirFluidState, dirLevel));
 							world.setBlockState(dirPos, l, Block.NOTIFY_ALL);
-							--level;
+
 						}
 						update = true;
 					}
@@ -164,10 +179,56 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 		}
 	}
 
+	protected boolean CanWaterFall(FluidState state, int level, FluidState downFluidState, int downLevel)
+	{
+		return downLevel != 8 && state.getFluid().matchesType(downFluidState.getFluid());
+	}
+
 	protected boolean CanFillWater(FluidState state, int level, FluidState dirFluidState, int dirLevel)
 	{
-		int diff = level - dirLevel;
-		return diff > 1 && state.getFluid().matchesType(dirFluidState.getFluid());
+		return dirLevel != 8 && (level < dirLevel || level == 8) && state.getFluid().matchesType(dirFluidState.getFluid());
+	}
+
+	/**
+	 * 0 <----- 7 :: 8 Full
+	 */
+	protected int GrowLevel(FluidState dstState, int dstLevel)
+	{
+		if (dstState.isEmpty()) return MIN_LEVEL;
+
+		if (dstLevel == 0)
+		{
+			return FULL_LEVEL;
+		}
+		return dstLevel - 1;
+	}
+
+	protected int[] Diff(FluidState state, int dstLevel, int level)
+	{
+		if (state.isEmpty()) return new int[] { level, REMOVE_LEVEL };
+		for (int i = 0; i < 9; i++)
+		{
+			if (dstLevel == 8 || level == REMOVE_LEVEL) break;
+			dstLevel = GrowLevel(state, dstLevel);
+			level = ShrinkLevel(level);
+		}
+		return new int[] { dstLevel, level };
+	}
+
+	/**
+	 * 0 -----> 7 :: 8 Full
+	 */
+	protected int ShrinkLevel(int level)
+	{
+		if (level == MIN_LEVEL)
+		{
+			return REMOVE_LEVEL;
+		}
+		if (level == FULL_LEVEL)
+		{
+			return MAX_LEVEL;
+		}
+		return level + 1;
 	}
 
 	private boolean CanFlow(BlockView world, Direction flowDirection, BlockPos flowTo, BlockState flowToBlockState, FluidState fluidState, Fluid fluid)
@@ -177,7 +238,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 	private BlockState FluidToState(FluidState state, int level)
 	{
-		level = (level < 0 || level > 7) ? 8 : level;
 		level = MathHelper.clamp(level, 0, 8);
 		return state.getFluid().getDefaultState().getBlockState().with(FluidBlock.LEVEL, level);
 	}
