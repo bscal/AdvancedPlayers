@@ -3,7 +3,9 @@ package me.bscal.advancedplayer.client;
 import me.bscal.advancedplayer.AdvancedPlayer;
 import me.bscal.advancedplayer.client.debug.DebugWindow;
 import me.bscal.advancedplayer.client.ui.TemperatureWindow;
+import me.bscal.advancedplayer.common.entities.EntityRegistry;
 import me.bscal.advancedplayer.common.mechanics.ecs.ECSManager;
+import me.bscal.advancedplayer.client.renderers.GhoulRenderer;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
@@ -12,17 +14,11 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
-import net.fabricmc.fabric.api.networking.v1.PacketSender;
-import net.fabricmc.fabric.impl.networking.ClientSidePacketRegistryImpl;
-import net.fabricmc.fabric.impl.networking.ServerSidePacketRegistryImpl;
-import net.fabricmc.fabric.impl.screenhandler.client.ClientNetworking;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.network.ClientPlayNetworkHandler;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.texture.SpriteAtlasTexture;
 import net.minecraft.client.util.InputUtil;
-import net.minecraft.network.PacketByteBuf;
 import net.minecraft.util.Identifier;
 import org.lwjgl.glfw.GLFW;
 
@@ -52,6 +48,8 @@ import java.util.stream.Stream;
 	{
 		DebugTemperatureKeyBind = KeyBindingHelper.registerKeyBinding(
 				new KeyBinding("key.advancedplayer.debug_temperature", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_COMMA, "category.advancedplayer.debug"));
+
+		EntityRendererRegistry.register(EntityRegistry.GHOUL_ENTITY, GhoulRenderer::new);
 
 		ClientPlayConnectionEvents.INIT.register((a, b) -> {
 			ECSManager.InitClient();
@@ -96,6 +94,6 @@ import java.util.stream.Stream;
 
 	public static Identifier GetTextureId(String filename)
 	{
-		return new Identifier(AdvancedPlayer.MOD_ID, filename);
+		return new Identifier(AdvancedPlayer.MOD_ID,  "ui/" + filename);
 	}
 }

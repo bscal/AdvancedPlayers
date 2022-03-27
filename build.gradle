@@ -40,14 +40,14 @@ dependencies {
         exclude group: 'com.oroarmor', module: 'oro-config-common'
     }
     // Used to dev environment so i don't need to download the mod
-    include("com.github.bscal:MCSeasons:${project.mcseasons_version}")
+    // include("com.github.bscal:MCSeasons:${project.mcseasons_version}")
     modImplementation include("io.github.cottonmc:LibGui:${project.libgui_version}")
 
     modImplementation(include("net.onedaybeard.artemis:artemis-odb:2.2.0"))
     modImplementation(include("net.onedaybeard.artemis:artemis-odb-serializer-kryo:2.2.0"))
     //modImplementation(include("net.mostlyoriginal.artemis-odb:contrib-eventbus:2.5.0"))
 
-    //modImplementation 'software.bernie.geckolib:geckolib-fabric-1.17:3.0.31'
+    modImplementation('software.bernie.geckolib:geckolib-fabric-1.18:3.0.35')
 }
 
 processResources {

@@ -3,6 +3,8 @@ package me.bscal.advancedplayer;
 import com.esotericsoftware.kryo.Kryo;
 import com.google.gson.Gson;
 import me.bscal.advancedplayer.common.commands.ServerCommands;
+import me.bscal.advancedplayer.common.entities.EntityRegistry;
+import me.bscal.advancedplayer.common.entities.GhoulEntity;
 import me.bscal.advancedplayer.common.food.MultiFood;
 import me.bscal.advancedplayer.common.items.ItemRegistry;
 import me.bscal.advancedplayer.common.mechanics.ecs.ECSManager;
@@ -10,6 +12,7 @@ import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
+import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.server.MinecraftServer;
 import org.apache.logging.log4j.Level;
@@ -51,6 +54,8 @@ public class AdvancedPlayer implements ModInitializer
 		ServerCommands.Init();
 		ItemRegistry.Init();
 
+		RegisterEntityAttributes();
+
 		ServerLifecycleEvents.SERVER_STARTING.register(server -> {
 			Server = server;
 			ECSManager.InitServer(server);
@@ -67,6 +72,11 @@ public class AdvancedPlayer implements ModInitializer
 		ServerTickEvents.END_SERVER_TICK.register(server -> {
 			ECSManager.Tick();
 		});
+	}
+
+	private void RegisterEntityAttributes()
+	{
+		FabricDefaultAttributeRegistry.register(EntityRegistry.GHOUL_ENTITY, GhoulEntity.createMobAttributes());
 	}
 
 	public static boolean IsUsingSeasons()
