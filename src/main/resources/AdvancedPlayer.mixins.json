@@ -9,9 +9,10 @@
     "FoodComponentAccessor",
     "LivingEntityMixin",
     "WaterFluidMixin",
-    "WaterFluidMixin$StillWaterMixin"
+    "WaterFluidMixin$StillWaterMixin",
   ],
   "client": [
+    "client.LightMapTextureManagerMixin"
   ],
   "injectors": {
     "defaultRequire": 1
