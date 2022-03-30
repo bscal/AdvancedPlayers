@@ -1,6 +1,5 @@
 package me.bscal.advancedplayer.mixin.client;
 
-import me.bscal.advancedplayer.AdvancedPlayer;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.GameRenderer;
 import net.minecraft.client.render.LightmapTextureManager;
@@ -95,7 +94,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 					// These seem to be decent values:
 					// Caves are pitch black but midnight is dark but enough to see outlines
 					Vec3f vec3f3 = vec3f.copy();
-					vec3f3.scale((m + .025f) * 2f);
+					vec3f3.scale((m + .1f) * (2f + MoonPhaseModifier()));
 					vec3f3.subtract(new Vec3f(.225f, .225f, .225f));
 					vec3f2.add(vec3f3);
 					//vec3f2.lerp(new Vec3f(0.75f, 0.75f, 0.75f), 0.04f);
@@ -133,14 +132,25 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 		this.client.getProfiler().pop();
 	}
 
-	private float GetMoodPhaseModifier()
+	private static final float[] MOON_PHASE_VALUES = new float[] { .08f, .05f, .025f, .01f, .0f, .01f, .025f, .05f };
+	private static final long DAY_END = 13000;
+	private static final long DAY_START = 1000;
+
+	private float MoonPhaseModifier()
 	{
-		if (this.client.world.isNight())
+		var world = this.client.world;
+		if (!IsDayClient(world))
 		{
-			float phase = this.client.world.getMoonSize();
-			return phase;
+			var m = world.getMoonPhase();
+			return MOON_PHASE_VALUES[world.getMoonPhase()];
 		}
 		return 0f;
+	}
+
+	private static boolean IsDayClient(ClientWorld world)
+	{
+		long time = world.getTimeOfDay();
+		return time >= DAY_START && time < DAY_END;
 	}
 
 }
