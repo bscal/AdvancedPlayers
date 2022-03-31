@@ -7,8 +7,10 @@ import net.minecraft.client.texture.NativeImage;
 import net.minecraft.client.texture.NativeImageBackedTexture;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.effect.StatusEffects;
+import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3f;
 import net.minecraft.world.World;
+import net.minecraft.world.dimension.DimensionType;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -55,8 +57,16 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 		{
 			return;
 		}
+
+		long time = clientWorld.getTimeOfDay() % 24000L;
+		boolean isDay = IsDayClient(time);
+		float nightMidpoint = GetNightMidpoint(time);
+		float scaleModifier = MathHelper.lerp(nightMidpoint, 0f, MoonPhaseModifier(isDay, clientWorld));
+
+		if (!clientWorld.getDimension().hasSkyLight())
+			scaleModifier = 0f;
+
 		float f = clientWorld.getStarBrightness(1.0f);
-		//AdvancedPlayer.LOGGER.info(f);
 		float g = clientWorld.getLightningTicksLeft() > 0 ? 1.0f : f * 0.95f + 0.05f;
 		float h = this.client.player.getUnderwaterVisibility();
 		float i = this.client.player.hasStatusEffect(StatusEffects.NIGHT_VISION) ?
@@ -88,14 +98,16 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 					// TODO sunset/sunset
 					// TODO moon stages lights
 					// TODO maybe noon increase light
-					// TODO flash of green
+					// TODO flash of green, bloodmoons
 					// TODO adjust blue at nighttime
 
 					// These seem to be decent values:
 					// Caves are pitch black but midnight is dark but enough to see outlines
 					Vec3f vec3f3 = vec3f.copy();
-					vec3f3.scale((m + .1f) * (2f + MoonPhaseModifier()));
-					vec3f3.subtract(new Vec3f(.225f, .225f, .225f));
+					vec3f3.scale(m * 2f);
+					vec3f3.add(new Vec3f(scaleModifier, scaleModifier, scaleModifier));
+					vec3f3.subtract(new Vec3f(.21f, .21f, .21f));
+					//vec3f3.clamp(0.0f, 1.0f);
 					vec3f2.add(vec3f3);
 					//vec3f2.lerp(new Vec3f(0.75f, 0.75f, 0.75f), 0.04f);
 					if (this.renderer.getSkyDarkness(delta) > 0.0f)
@@ -114,7 +126,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 					vec3f4.scale(r);
 					vec3f2.lerp(vec3f4, i);
 				}
-				float s2 = 0;
+				float s2 = (float)this.client.options.gamma;
 				Vec3f vec3f5 = vec3f2.copy();
 				vec3f5.modify(this::easeOutQuart);
 				vec3f2.lerp(vec3f5, s2);
@@ -132,25 +144,25 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 		this.client.getProfiler().pop();
 	}
 
-	private static final float[] MOON_PHASE_VALUES = new float[] { .08f, .05f, .025f, .01f, .0f, .01f, .025f, .05f };
+	private static final float[] MOON_PHASE_VALUES = new float[] { .075f, .025f, .0f, -.04f, -.1f, -.04f, .0f, .025f };
 	private static final long DAY_END = 13000;
 	private static final long DAY_START = 1000;
 
-	private float MoonPhaseModifier()
+	private static float MoonPhaseModifier(boolean isDay, ClientWorld world)
 	{
-		var world = this.client.world;
-		if (!IsDayClient(world))
-		{
-			var m = world.getMoonPhase();
-			return MOON_PHASE_VALUES[world.getMoonPhase()];
-		}
-		return 0f;
+		return (!isDay) ? MOON_PHASE_VALUES[world.getMoonPhase()] : 0f;
 	}
 
-	private static boolean IsDayClient(ClientWorld world)
+	private static boolean IsDayClient(long time)
 	{
-		long time = world.getTimeOfDay();
 		return time >= DAY_START && time < DAY_END;
+	}
+
+	private static float GetNightMidpoint(long time)
+	{
+		if (time < 13000) return 0f;
+		long diff = Math.abs(18000L - time);
+		return MathHelper.clamp(1f - (float)diff / 6000L, 0f, 1f);
 	}
 
 }
