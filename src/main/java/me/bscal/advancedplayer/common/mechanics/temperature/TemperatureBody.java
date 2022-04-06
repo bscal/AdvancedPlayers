@@ -55,8 +55,8 @@ public class TemperatureBody extends EntityBodyComponent
 	{
 		BlockPos pos = m_Provider.getBlockPos();
 		RegistryEntry<Biome> biome = m_Provider.world.getBiome(pos);
-		Identifier biomeId = SeasonAPI.getBiomeId(biome.value(), m_Provider.world);
-		TemperatureBiomeRegistry.BiomeClimate climate = TemperatureBiomeRegistry.BiomesToClimateMap.get(biomeId);
+		var seasons = SeasonAPI.getSeasonByBiome(biome.value());
+		BiomeClimate climate = TemperatureBiomeRegistry.Get(biome.value());
 		float airTemperature = climate.GetCurrentTemperature();
 		float yTemperature = GetYTemperature(pos);
 		float lightTemperature = GetLightTemperature(m_Provider.world.getLightLevel(LightType.SKY, pos));
@@ -106,8 +106,6 @@ public class TemperatureBody extends EntityBodyComponent
 			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("heatLossRate = " + HeatLossRate);
 			//AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("wetness = " + wetness);
 			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("TemperatureShiftType = " + ShiftType);
-			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("biomeId = " + biomeId);
-			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("season = " + SeasonAPI.getSeasonByBiome(biomeId));
 			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("climate = " + climate);
 		}
 	}

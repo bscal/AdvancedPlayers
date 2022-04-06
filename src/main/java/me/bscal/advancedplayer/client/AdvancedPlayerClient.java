@@ -3,8 +3,9 @@ package me.bscal.advancedplayer.client;
 import me.bscal.advancedplayer.AdvancedPlayer;
 import me.bscal.advancedplayer.client.debug.DebugWindow;
 import me.bscal.advancedplayer.client.ui.TemperatureWindow;
+import me.bscal.advancedplayer.common.ecs.ECSManagerClient;
+import me.bscal.advancedplayer.common.ecs.ECSManagerServer;
 import me.bscal.advancedplayer.common.entities.EntityRegistry;
-import me.bscal.advancedplayer.common.mechanics.ecs.ECSManager;
 import me.bscal.advancedplayer.client.renderers.GhoulRenderer;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.api.EnvType;
@@ -42,6 +43,7 @@ import java.util.stream.Stream;
 	public static final Identifier TEXTURE_DOWN_CARROT = GetTextureId("down_carrot");
 
 	public static SpriteAtlasTexture AtlasTexture;
+	public static ECSManagerClient ECSManagerClient;
 
 	@Override
 	public void onInitializeClient()
@@ -52,27 +54,13 @@ import java.util.stream.Stream;
 		EntityRendererRegistry.register(EntityRegistry.GHOUL_ENTITY, GhoulRenderer::new);
 
 		ClientPlayConnectionEvents.INIT.register((a, b) -> {
-			ECSManager.InitClient();
+			ECSManagerClient = new ECSManagerClient(AdvancedPlayer.Kryo);
 		});
 
-		ClientPlayConnectionEvents.DISCONNECT.register(((handler, client) -> {
-			ECSManager.CleanupClient();
-		}));
-
-		ClientPlayNetworking.registerGlobalReceiver(ECSManager.SYNC_CHANNEL, (client, handler, buf, responseSender) -> {
-			final byte[] buffer = new byte[buf.writerIndex()];
-			buf.getBytes(0, buffer);
-			client.execute(() -> ECSManager.ReadEntity(buffer));
+		ClientPlayNetworking.registerGlobalReceiver(ECSManagerServer.SYNC_CHANNEL, (client, handler, buf, responseSender) -> {
+			if (ECSManagerClient != null)
+				ECSManagerClient.HandleSyncPacket(client, handler, buf, responseSender);
 		});
-
-		ClientPlayNetworking.registerGlobalReceiver(ECSManager.CREATE_CHANNEL, ((client, handler, buf, responseSender) -> {
-			final int networkId = buf.readInt();
-			client.execute(() -> ECSManager.CreateUser(networkId));
-		}));
-
-		ClientTickEvents.END_WORLD_TICK.register((client -> {
-			ECSManager.ClientWorld.process();
-		}));
 
 		HudRenderCallback.EVENT.register(TemperatureDebugWindow);
 

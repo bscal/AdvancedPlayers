@@ -2,8 +2,7 @@ package me.bscal.advancedplayer.client.ui;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import me.bscal.advancedplayer.client.AdvancedPlayerClient;
-import me.bscal.advancedplayer.common.mechanics.ecs.ECSManager;
-import me.bscal.advancedplayer.common.mechanics.ecs.components.Temperature;
+import me.bscal.advancedplayer.common.ecs.components.Temperature;
 import me.bscal.advancedplayer.common.mechanics.temperature.TemperatureBody;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
@@ -31,9 +30,10 @@ import net.minecraft.util.Identifier;
 	{
 		var client = MinecraftClient.getInstance();
 		if (client.player == null) return;
-		if (true) return; // TODO
-		Temperature temperature = (Temperature) ECSManager.GetClientComponent(Temperature.class);
-		if (temperature == null) return;
+
+		var optional = AdvancedPlayerClient.ECSManagerClient.GetComponent(client.player, Temperature.class);
+		if (optional.isEmpty()) return;
+		var temperature = (Temperature) optional.get();
 
 		/*
 			Thermometer Drawing

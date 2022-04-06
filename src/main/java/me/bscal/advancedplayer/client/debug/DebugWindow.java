@@ -2,18 +2,15 @@ package me.bscal.advancedplayer.client.debug;
 
 import com.google.common.base.Strings;
 import me.bscal.advancedplayer.client.AdvancedPlayerClient;
-import me.bscal.advancedplayer.common.mechanics.ecs.ECSManager;
-import me.bscal.advancedplayer.common.mechanics.ecs.components.Temperature;
-import me.bscal.advancedplayer.common.mechanics.ecs.components.Wetness;
+import me.bscal.advancedplayer.common.ecs.components.Temperature;
+import me.bscal.advancedplayer.common.ecs.components.Wetness;
 import me.bscal.seasons.api.SeasonAPI;
-import me.bscal.seasons.client.SeasonsClient;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.hud.DebugHud;
-import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.util.math.MatrixStack;
 
 import java.util.ArrayList;
@@ -54,26 +51,5 @@ import java.util.List;
 			DebugHud.fill(matrixStack, 1, m - 1, 2 + k + 1, m + j - 1, -1873784752);
 			textRenderer.draw(matrixStack, string, 2.0f, (float) m, 0xE0E0E0);
 		}
-	}
-
-	public void AddTemperatureDebugText()
-	{
-		TemperatureDebugTextList.clear();
-		Temperature temperature = (Temperature) ECSManager.GetClientComponent(Temperature.class);
-		if (temperature != null)
-		{
-			TemperatureDebugTextList.add("CoreBodyTemperature = " + temperature.CoreBodyTemperature);
-			TemperatureDebugTextList.add("BodyTemperature = " + temperature.BodyTemperature);
-			TemperatureDebugTextList.add("Work = " + temperature.Work);
-			TemperatureDebugTextList.add("outsideTemperature = " + temperature.OutSideTemperature);
-			TemperatureDebugTextList.add("heatLossRate = " + temperature.HeatLossRate);
-			TemperatureDebugTextList.add("TemperatureShiftType = " + temperature.ShiftType);
-		}
-
-		Wetness wetness = (Wetness) ECSManager.GetClientComponent(Wetness.class);
-		boolean isWet = wetness != null;
-		TemperatureDebugTextList.add(String.format("Wetness: Has %s, Value %.2f", isWet, (isWet) ? wetness.Wetness : 0f));
-
-		TemperatureDebugTextList.add("season = " + SeasonAPI.getSeason());
 	}
 }

@@ -1,19 +1,14 @@
 package me.bscal.advancedplayer.common.mechanics.temperature;
 
-import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
 import me.bscal.advancedplayer.AdvancedPlayer;
-import me.bscal.seasons.api.SeasonAPI;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.registry.Registry;
-import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.biome.BiomeKeys;
 
 public class TemperatureBiomeRegistry
 {
-
-	public static final Object2ObjectOpenHashMap<Identifier, BiomeClimate> BiomesToClimateMap;
-
 	public static final float EVEN_BODY_TEMP = 21f;
 	public static final float COOLING_BODY_TEMP = 19f;
 	public static final float WARMING_BODY_TEMP = 23f;
@@ -28,10 +23,34 @@ public class TemperatureBiomeRegistry
 	public static final BiomeClimate HOT_CLIMATE;
 	public static final BiomeClimate TROPICAL_CLIMATE;
 
-	public static BiomeClimate GetClimate(Biome biome, World world)
+	public static final Reference2ObjectOpenHashMap<Biome, BiomeClimate> BiomeIdToClimate;
+
+	public static void Put(Biome biome, BiomeClimate climate)
 	{
-		Identifier biomeId = world.getRegistryManager().get(Registry.BIOME_KEY).getId(biome);
-		return BiomesToClimateMap.get(biomeId);
+		BiomeIdToClimate.put(biome, climate);
+	}
+
+	public static void Put(Identifier id, BiomeClimate climate)
+	{
+		var optionalWorld = AdvancedPlayer.GetMainWorld();
+		optionalWorld.ifPresent(world -> {
+			var biome = world.getRegistryManager().get(Registry.BIOME_KEY).get(id);
+			if (biome == null) return;
+			BiomeIdToClimate.put(biome, climate);
+		});
+	}
+
+	public static BiomeClimate Get(Biome biome)
+	{
+		return BiomeIdToClimate.get(biome);
+	}
+
+	public static BiomeClimate Get(Identifier id)
+	{
+		var optionalWorld = AdvancedPlayer.GetMainWorld();
+		if (optionalWorld.isEmpty()) return BiomeIdToClimate.defaultReturnValue();
+		var biome = optionalWorld.get().getRegistryManager().get(Registry.BIOME_KEY).get(id);
+		return BiomeIdToClimate.get(biome);
 	}
 
 	public static boolean IsNormalTemperature(float t)
@@ -39,39 +58,16 @@ public class TemperatureBiomeRegistry
 		return t < WARMING_BODY_TEMP && t > COOLING_BODY_TEMP;
 	}
 
-	public static class BiomeClimate
-	{
-		public TemperatureType Type;
-		public float BaseTemperature;
-		public float[] TemperaturePerSeason;
-
-		public float GetCurrentTemperature()
-		{
-			return TemperaturePerSeason[(AdvancedPlayer.IsUsingSeasons()) ? SeasonAPI.getInternalSeasonId() : 0];
-		}
-
-		@Override
-		public String toString()
-		{
-			return String.format("%s, Base: %f.2f,0=%.2f 1=%.2f 2=%.2f 3=%.2f", Type, BaseTemperature, TemperaturePerSeason[0], TemperaturePerSeason[1],
-								 TemperaturePerSeason[2], TemperaturePerSeason[3]);
-		}
-	}
-
-	public enum TemperatureType
-	{
-		None, Neutral, Hot, Cold
-	}
-
 	static
 	{
-		BiomesToClimateMap = new Object2ObjectOpenHashMap<>(32);
+		BiomeIdToClimate = new Reference2ObjectOpenHashMap<>(32);
+
 		DEFAULT_CLIMATE = new BiomeClimate();
 		DEFAULT_CLIMATE.Type = TemperatureType.Neutral;
 		DEFAULT_CLIMATE.BaseTemperature = 11f;
 		DEFAULT_CLIMATE.TemperaturePerSeason = new float[] { 15f, 26f, 15f, 0f };
 
-		BiomesToClimateMap.defaultReturnValue(DEFAULT_CLIMATE);
+		BiomeIdToClimate.defaultReturnValue(DEFAULT_CLIMATE);
 
 		COLD_CLIMATE = new BiomeClimate();
 		COLD_CLIMATE.Type = TemperatureType.Cold;
@@ -88,43 +84,43 @@ public class TemperatureBiomeRegistry
 		TROPICAL_CLIMATE.BaseTemperature = 27f;
 		TROPICAL_CLIMATE.TemperaturePerSeason = new float[] { 27f, 27f, 27f, 27f };
 
-		BiomesToClimateMap.putIfAbsent(BiomeKeys.SNOWY_PLAINS.getValue(), COLD_CLIMATE);
-		BiomesToClimateMap.putIfAbsent(BiomeKeys.ICE_SPIKES.getValue(), COLD_CLIMATE);
+		Put(BiomeKeys.SNOWY_PLAINS.getValue(), COLD_CLIMATE);
+		Put(BiomeKeys.ICE_SPIKES.getValue(), COLD_CLIMATE);
 
-		BiomesToClimateMap.putIfAbsent(BiomeKeys.DESERT.getValue(), HOT_CLIMATE);
+		Put(BiomeKeys.DESERT.getValue(), HOT_CLIMATE);
 
-		BiomesToClimateMap.putIfAbsent(BiomeKeys.TAIGA.getValue(), COLD_CLIMATE);
-		BiomesToClimateMap.putIfAbsent(BiomeKeys.SNOWY_TAIGA.getValue(), COLD_CLIMATE);
+		Put(BiomeKeys.TAIGA.getValue(), COLD_CLIMATE);
+		Put(BiomeKeys.SNOWY_TAIGA.getValue(), COLD_CLIMATE);
 
-		BiomesToClimateMap.putIfAbsent(BiomeKeys.SAVANNA.getValue(), HOT_CLIMATE);
-		BiomesToClimateMap.putIfAbsent(BiomeKeys.SAVANNA_PLATEAU.getValue(), HOT_CLIMATE);
+		Put(BiomeKeys.SAVANNA.getValue(), HOT_CLIMATE);
+		Put(BiomeKeys.SAVANNA_PLATEAU.getValue(), HOT_CLIMATE);
 
-		BiomesToClimateMap.putIfAbsent(BiomeKeys.JUNGLE.getValue(), TROPICAL_CLIMATE);
-		BiomesToClimateMap.putIfAbsent(BiomeKeys.SPARSE_JUNGLE.getValue(), TROPICAL_CLIMATE);
-		BiomesToClimateMap.putIfAbsent(BiomeKeys.BAMBOO_JUNGLE.getValue(), TROPICAL_CLIMATE);
+		Put(BiomeKeys.JUNGLE.getValue(), TROPICAL_CLIMATE);
+		Put(BiomeKeys.SPARSE_JUNGLE.getValue(), TROPICAL_CLIMATE);
+		Put(BiomeKeys.BAMBOO_JUNGLE.getValue(), TROPICAL_CLIMATE);
 
-		BiomesToClimateMap.putIfAbsent(BiomeKeys.BADLANDS.getValue(), HOT_CLIMATE);
-		BiomesToClimateMap.putIfAbsent(BiomeKeys.ERODED_BADLANDS.getValue(), HOT_CLIMATE);
-		BiomesToClimateMap.putIfAbsent(BiomeKeys.WOODED_BADLANDS.getValue(), HOT_CLIMATE);
+		Put(BiomeKeys.BADLANDS.getValue(), HOT_CLIMATE);
+		Put(BiomeKeys.ERODED_BADLANDS.getValue(), HOT_CLIMATE);
+		Put(BiomeKeys.WOODED_BADLANDS.getValue(), HOT_CLIMATE);
 
-		BiomesToClimateMap.putIfAbsent(BiomeKeys.SNOWY_SLOPES.getValue(), COLD_CLIMATE);
-		BiomesToClimateMap.putIfAbsent(BiomeKeys.FROZEN_PEAKS.getValue(), COLD_CLIMATE);
-		BiomesToClimateMap.putIfAbsent(BiomeKeys.JAGGED_PEAKS.getValue(), COLD_CLIMATE);
-		BiomesToClimateMap.putIfAbsent(BiomeKeys.STONY_PEAKS.getValue(), COLD_CLIMATE);
-		BiomesToClimateMap.putIfAbsent(BiomeKeys.FROZEN_OCEAN.getValue(), COLD_CLIMATE);
-		BiomesToClimateMap.putIfAbsent(BiomeKeys.DEEP_FROZEN_OCEAN.getValue(), COLD_CLIMATE);
+		Put(BiomeKeys.SNOWY_SLOPES.getValue(), COLD_CLIMATE);
+		Put(BiomeKeys.FROZEN_PEAKS.getValue(), COLD_CLIMATE);
+		Put(BiomeKeys.JAGGED_PEAKS.getValue(), COLD_CLIMATE);
+		Put(BiomeKeys.STONY_PEAKS.getValue(), COLD_CLIMATE);
+		Put(BiomeKeys.FROZEN_OCEAN.getValue(), COLD_CLIMATE);
+		Put(BiomeKeys.DEEP_FROZEN_OCEAN.getValue(), COLD_CLIMATE);
 
-		BiomesToClimateMap.putIfAbsent(BiomeKeys.NETHER_WASTES.getValue(), HOT_CLIMATE);
-		BiomesToClimateMap.putIfAbsent(BiomeKeys.WARPED_FOREST.getValue(), HOT_CLIMATE);
-		BiomesToClimateMap.putIfAbsent(BiomeKeys.CRIMSON_FOREST.getValue(), HOT_CLIMATE);
-		BiomesToClimateMap.putIfAbsent(BiomeKeys.SOUL_SAND_VALLEY.getValue(), HOT_CLIMATE);
-		BiomesToClimateMap.putIfAbsent(BiomeKeys.BASALT_DELTAS.getValue(), HOT_CLIMATE);
+		Put(BiomeKeys.NETHER_WASTES.getValue(), HOT_CLIMATE);
+		Put(BiomeKeys.WARPED_FOREST.getValue(), HOT_CLIMATE);
+		Put(BiomeKeys.CRIMSON_FOREST.getValue(), HOT_CLIMATE);
+		Put(BiomeKeys.SOUL_SAND_VALLEY.getValue(), HOT_CLIMATE);
+		Put(BiomeKeys.BASALT_DELTAS.getValue(), HOT_CLIMATE);
 
-		BiomesToClimateMap.putIfAbsent(BiomeKeys.THE_END.getValue(), COLD_CLIMATE);
-		BiomesToClimateMap.putIfAbsent(BiomeKeys.END_HIGHLANDS.getValue(), COLD_CLIMATE);
-		BiomesToClimateMap.putIfAbsent(BiomeKeys.END_MIDLANDS.getValue(), COLD_CLIMATE);
-		BiomesToClimateMap.putIfAbsent(BiomeKeys.SMALL_END_ISLANDS.getValue(), COLD_CLIMATE);
-		BiomesToClimateMap.putIfAbsent(BiomeKeys.END_BARRENS.getValue(), COLD_CLIMATE);
+		Put(BiomeKeys.THE_END.getValue(), COLD_CLIMATE);
+		Put(BiomeKeys.END_HIGHLANDS.getValue(), COLD_CLIMATE);
+		Put(BiomeKeys.END_MIDLANDS.getValue(), COLD_CLIMATE);
+		Put(BiomeKeys.SMALL_END_ISLANDS.getValue(), COLD_CLIMATE);
+		Put(BiomeKeys.END_BARRENS.getValue(), COLD_CLIMATE);
 	}
 }
 
