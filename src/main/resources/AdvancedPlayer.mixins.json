@@ -14,7 +14,8 @@
     "LivingEntityMixin"
   ],
   "client": [
-    "client.LightMapTextureManagerMixin"
+    "client.LightMapTextureManagerMixin",
+    "client.SpriteAtlasTextureMixin$Data"
   ],
   "injectors": {
     "defaultRequire": 1

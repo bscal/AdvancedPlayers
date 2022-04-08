@@ -1,21 +1,15 @@
 package me.bscal.advancedplayer;
 
-import com.artemis.Entity;
-import com.artemis.io.KryoArtemisSerializer;
 import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.util.MapReferenceResolver;
 import com.google.gson.Gson;
 import me.bscal.advancedplayer.common.commands.ServerCommands;
 import me.bscal.advancedplayer.common.ecs.ECSManager;
 import me.bscal.advancedplayer.common.ecs.ECSManagerServer;
-import me.bscal.advancedplayer.common.ecs.components.Sync;
 import me.bscal.advancedplayer.common.entities.EntityRegistry;
 import me.bscal.advancedplayer.common.entities.GhoulEntity;
-import me.bscal.advancedplayer.common.food.MultiFood;
 import me.bscal.advancedplayer.common.items.ItemRegistry;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.ModInitializer;
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
@@ -65,7 +59,6 @@ public class AdvancedPlayer implements ModInitializer
 			ECSManagerServer = new ECSManagerServer(server);
 		});
 
-		ServerEntityEvents.ENTITY_LOAD.register((entity, world) -> {});
 		ServerPlayConnectionEvents.INIT.register((handler, sender) -> ECSManagerServer.LoadOrCreatePlayer(handler.player));
 		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> ECSManagerServer.SaveAndRemovePlayer(handler.player));
 		ServerTickEvents.END_SERVER_TICK.register(server -> ECSManagerServer.Tick(server));
@@ -83,15 +76,18 @@ public class AdvancedPlayer implements ModInitializer
 
 	public static Optional<World> GetMainWorld()
 	{
-		if (FabricLoader.getInstance().getEnvironmentType() == EnvType.CLIENT)
-			return Optional.ofNullable(MinecraftClient.getInstance().world);
-		else
-			return Optional.ofNullable(Server.getOverworld());
+		if (FabricLoader.getInstance().getEnvironmentType() == EnvType.CLIENT) return Optional.ofNullable(MinecraftClient.getInstance().world);
+		else return Optional.ofNullable(Server.getOverworld());
 	}
 
 	public static Kryo GetServerKryo()
 	{
 		return ECSManagerServer.GetKryo();
+	}
+
+	public static MinecraftServer GetServer()
+	{
+		return Server;
 	}
 
 }

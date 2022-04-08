@@ -144,7 +144,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 		this.client.getProfiler().pop();
 	}
 
-	private static final float[] MOON_PHASE_VALUES = new float[] { .075f, .025f, .0f, -.04f, -.1f, -.04f, .0f, .025f };
+	private static final float[] MOON_PHASE_VALUES = new float[] { .075f, .02f, -.01f, -.06f, -.15f, -.06f, -.01f, .02f };
 	private static final long DAY_END = 13000;
 	private static final long DAY_START = 1000;
 

@@ -20,6 +20,7 @@ import net.minecraft.server.network.ServerPlayerEntity;
 	private ComponentMapper<Sync> m_SyncPlayers;
 
 	private Output m_Output;
+	private int m_ShouldShrinkCount;
 
 	public SyncSystem()
 	{
@@ -30,7 +31,7 @@ import net.minecraft.server.network.ServerPlayerEntity;
 	protected void initialize()
 	{
 		super.initialize();
-		m_Output = new Output(128, 1024);
+		m_Output = new Output(256, 2048);
 	}
 
 	@Override
@@ -61,6 +62,8 @@ import net.minecraft.server.network.ServerPlayerEntity;
 		var kryo = AdvancedPlayer.ECSManagerServer.GetKryo();
 		kryo.writeObject(m_Output, sync.ComponentsToAdd);
 		kryo.writeObject(m_Output, sync.ComponentsToRemove);
+
+		m_Output.flush();
 
 		var packetBuf = new PacketByteBuf(Unpooled.wrappedBuffer(m_Output.getBuffer()));
 		ServerPlayNetworking.send(player, ECSManagerServer.SYNC_CHANNEL, packetBuf);

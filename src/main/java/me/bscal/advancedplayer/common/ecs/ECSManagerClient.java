@@ -57,6 +57,11 @@ public class ECSManagerClient extends ECSManager
 		return GetComponent(entity.getId(), clazz);
 	}
 
+	public <T> Optional<T> GetComponentTyped(Entity entity, Class<T> clazz)
+	{
+		return (Optional<T>) GetComponent(entity, clazz);
+	}
+
 	public Optional<Component> GetComponent(int netId, Class<?> clazz)
 	{
 		var container = IdToEntity.get(netId);
@@ -87,7 +92,7 @@ public class ECSManagerClient extends ECSManager
 	}
 
 	/**
-	 * 	Hopefully thread safe only does some reading
+	 * Hopefully thread safe only does some reading
 	 */
 	public void HandleSyncPacket(MinecraftClient client, ClientPlayNetworkHandler handler, PacketByteBuf buf, PacketSender responseSender)
 	{
@@ -96,7 +101,6 @@ public class ECSManagerClient extends ECSManager
 
 		final int networkId = input.readInt();
 		final int entityId = input.readInt();
-
 		client.execute(() -> {
 			long start = System.nanoTime();
 
@@ -109,6 +113,14 @@ public class ECSManagerClient extends ECSManager
 
 			long end = System.nanoTime() - start;
 			AdvancedPlayer.LOGGER.info("Reading sync: {}ns, {}ms", end, end / 1000000);
+		});
+	}
+
+	public void HandleEntityRemovePacket(MinecraftClient client, PacketByteBuf buf)
+	{
+		final int networkId = buf.readInt();
+		client.execute(() -> {
+			EntityRemoved(networkId);
 		});
 	}
 

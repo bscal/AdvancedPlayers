@@ -8,17 +8,12 @@ import com.artemis.utils.IntBag;
 import com.esotericsoftware.kryo.Kryo;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import me.bscal.advancedplayer.AdvancedPlayer;
-import me.bscal.advancedplayer.common.ecs.components.RefPlayer;
-import me.bscal.advancedplayer.common.ecs.components.Sync;
-import me.bscal.advancedplayer.common.ecs.components.Temperature;
-import me.bscal.advancedplayer.common.ecs.components.Wetness;
-import me.bscal.advancedplayer.common.ecs.systems.BleedSystem;
-import me.bscal.advancedplayer.common.ecs.systems.DebugSystem;
-import me.bscal.advancedplayer.common.ecs.systems.SyncSystem;
-import me.bscal.advancedplayer.common.ecs.systems.TemperatureSystem;
+import me.bscal.advancedplayer.common.ecs.components.*;
+import me.bscal.advancedplayer.common.ecs.systems.*;
 import me.bscal.advancedplayer.common.food.MultiFood;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.WorldSavePath;
 
 import java.io.File;
@@ -45,6 +40,7 @@ public class ECSManagerServer extends ECSManager
 		WorldConfiguration worldConfig = new WorldConfigurationBuilder().with(
 				SerializationManager,
 				new TemperatureSystem(),
+				new ThirstSystem(),
 				new BleedSystem(),
 				new DebugSystem(),
 				new SyncSystem())
@@ -63,7 +59,7 @@ public class ECSManagerServer extends ECSManager
 		SavePath = new File(server.getSavePath(WorldSavePath.ROOT) + "/data/entities/");
 		PlayerArchetype = new ArchetypeBuilder().add(
 						Temperature.class,
-						Wetness.class)
+						Wetness.class, Thirst.class)
 				.build(World);
 
 		AdvancedPlayer.LOGGER.info("Initialized ECSManager Server!");

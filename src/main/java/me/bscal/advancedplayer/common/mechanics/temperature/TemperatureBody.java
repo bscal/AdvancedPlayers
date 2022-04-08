@@ -7,7 +7,6 @@ import me.bscal.seasons.api.SeasonAPI;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.registry.RegistryEntry;
@@ -93,20 +92,20 @@ public class TemperatureBody extends EntityBodyComponent
 
 		if (FabricLoader.getInstance().isDevelopmentEnvironment() && FabricLoader.getInstance().getEnvironmentType() == EnvType.CLIENT)
 		{
-			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.clear();
-			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("CoreBodyTemperature = " + CoreBodyTemperature);
-			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("BodyTemperature = " + BodyTemperature);
-			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("Work = " + Work);
-			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("outsideTemperature = " + OutSideTemperature);
-			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("airTemperature = " + airTemperature);
-			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("yTemperature = " + yTemperature);
-			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("lightTemperature = " + lightTemperature);
-			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("diff = " + diff);
-			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("delta = " + delta);
-			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("heatLossRate = " + HeatLossRate);
+			AdvancedPlayerClient.DEBUG_WINDOW.LeftDebugTxt.clear();
+			AdvancedPlayerClient.DEBUG_WINDOW.LeftDebugTxt.add("CoreBodyTemperature = " + CoreBodyTemperature);
+			AdvancedPlayerClient.DEBUG_WINDOW.LeftDebugTxt.add("BodyTemperature = " + BodyTemperature);
+			AdvancedPlayerClient.DEBUG_WINDOW.LeftDebugTxt.add("Work = " + Work);
+			AdvancedPlayerClient.DEBUG_WINDOW.LeftDebugTxt.add("outsideTemperature = " + OutSideTemperature);
+			AdvancedPlayerClient.DEBUG_WINDOW.LeftDebugTxt.add("airTemperature = " + airTemperature);
+			AdvancedPlayerClient.DEBUG_WINDOW.LeftDebugTxt.add("yTemperature = " + yTemperature);
+			AdvancedPlayerClient.DEBUG_WINDOW.LeftDebugTxt.add("lightTemperature = " + lightTemperature);
+			AdvancedPlayerClient.DEBUG_WINDOW.LeftDebugTxt.add("diff = " + diff);
+			AdvancedPlayerClient.DEBUG_WINDOW.LeftDebugTxt.add("delta = " + delta);
+			AdvancedPlayerClient.DEBUG_WINDOW.LeftDebugTxt.add("heatLossRate = " + HeatLossRate);
 			//AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("wetness = " + wetness);
-			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("TemperatureShiftType = " + ShiftType);
-			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("climate = " + climate);
+			AdvancedPlayerClient.DEBUG_WINDOW.LeftDebugTxt.add("TemperatureShiftType = " + ShiftType);
+			AdvancedPlayerClient.DEBUG_WINDOW.LeftDebugTxt.add("climate = " + climate);
 		}
 	}
 

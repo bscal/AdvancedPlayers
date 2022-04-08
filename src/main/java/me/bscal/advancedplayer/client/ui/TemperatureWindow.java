@@ -13,7 +13,7 @@ import net.minecraft.client.texture.Sprite;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.util.Identifier;
 
-@Environment(EnvType.CLIENT) public class TemperatureWindow implements HudRenderCallback
+@Environment(EnvType.CLIENT) public class TemperatureWindow implements HudRenderCallback, PlayerStatusHud.PlayerStatusRenderer
 {
 
 	public static final int ICON_OFFSET = 16 / 2;
@@ -47,7 +47,6 @@ import net.minecraft.util.Identifier;
 
 		var spriteId = SetTemperature(temperature.CoreBodyTemperature);
 		InGameHud.drawSprite(matrixStack, x, y, 0, 16, 32, AdvancedPlayerClient.AtlasTexture.getSprite(spriteId));
-
 		DrawChange(matrixStack, x, y, temperature);
 	}
 
@@ -90,5 +89,20 @@ import net.minecraft.util.Identifier;
 			InGameHud.drawSprite(matrixStack, x, y - 6, 0, 16, 16, sprite);
 		}
 		matrixStack.pop();
+	}
+
+	@Override
+	public void Render(MatrixStack matrixStack, float tickDelta, MinecraftClient client, int x, int y,  int textureWidth, int textureHeight)
+	{
+		var optional = AdvancedPlayerClient.ECSManagerClient.GetComponentTyped(client.player, Temperature.class);
+		if (optional.isEmpty()) return;
+		var temperature = optional.get();
+
+		int xx = x + 5;
+		InGameHud.drawSprite(matrixStack, xx, y, 0, 16, 32, Thermometer);
+
+		var spriteId = SetTemperature(temperature.CoreBodyTemperature);
+		InGameHud.drawSprite(matrixStack, xx, y, 0, 16, 32, AdvancedPlayerClient.AtlasTexture.getSprite(spriteId));
+		DrawChange(matrixStack, xx, y, temperature);
 	}
 }

@@ -12,6 +12,7 @@ import me.bscal.advancedplayer.common.mechanics.temperature.BiomeClimate;
 import me.bscal.advancedplayer.common.mechanics.temperature.TemperatureBiomeRegistry;
 import me.bscal.advancedplayer.common.mechanics.temperature.TemperatureBody;
 import me.bscal.advancedplayer.common.mechanics.temperature.TemperatureClothing;
+import me.bscal.advancedplayer.common.utils.Timer;
 import me.bscal.seasons.api.SeasonAPI;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.loader.api.FabricLoader;
@@ -30,9 +31,13 @@ import net.minecraft.world.biome.Biome;
 	ComponentMapper<Sync> SyncPlayers;
 	ComponentMapper<Wetness> PlayerWetness;
 
+	public static Timer Timer = new Timer(20);
+
 	@Override
 	protected void process(int entityId)
 	{
+		Timer.Start();
+
 		var temperature = Temperatures.get(entityId);
 		var player = Players.get(entityId).Player;
 		var sync = SyncPlayers.get(entityId);
@@ -40,24 +45,29 @@ import net.minecraft.world.biome.Biome;
 		var wetness = PlayerWetness.get(entityId);
 		float wetnessValue = (wetness == null) ? 0 : wetness.Wetness;
 
+		// Cache temperature? doesnt really make sense to calculate temperature
+		// TODO can we thread this? Is it worth?
 
 		BlockPos pos = player.getBlockPos();
 		RegistryEntry<Biome> biome = player.world.getBiome(pos);
-		var a = SeasonAPI.getSeasonByBiome(biome.value());
+		var season = SeasonAPI.getSeasonByBiome(biome.value());
 		BiomeClimate climate = TemperatureBiomeRegistry.Get(biome.value());
 		float airTemperature = climate.GetCurrentTemperature();
 		float yTemperature = GetYTemperature(pos);
 		float lightTemperature = GetLightTemperature(player.world.getLightLevel(LightType.SKY, pos));
 		float humidity = 0.5f;
 		float wind = 3f;
+
 		TemperatureClothing.ClothingData clothingData = GetProviderClothingData(player);
 		temperature.Insulation = clothingData.Insulation;
 		temperature.WindResistance = clothingData.WindResistance;
+
 		float m_BaseWork = 1.0f; // Players body always doing some work.
-		temperature.BodyTemperature = temperature.CoreBodyTemperature + temperature.Work + m_BaseWork;
-		temperature.OutSideTemperature = airTemperature + yTemperature + lightTemperature - (wind - temperature.WindResistance);
-		float diff = temperature.BodyTemperature - temperature.OutSideTemperature;
-		temperature.ShiftType = TemperatureBody.TemperatureShiftType.TypeForTemp(temperature.OutSideTemperature);
+		float bodyTemp = temperature.CoreBodyTemperature + temperature.Work + m_BaseWork;
+
+		temperature.OutsideTemp = airTemperature + yTemperature + lightTemperature - (wind - temperature.WindResistance);
+		float diff = bodyTemp - temperature.OutsideTemp;
+		temperature.ShiftType = TemperatureBody.TemperatureShiftType.TypeForTemp(temperature.OutsideTemp);
 
 		// 100% insulation would mean you lose 0 heat, 0% you lose all the heat;
 		temperature.HeatLossRate = MathHelper.lerp(temperature.Insulation, diff / 200, .0f);
@@ -66,35 +76,17 @@ import net.minecraft.world.biome.Biome;
 		// Body moving towards the outside temperature. Not an expert at thermodynamics but this seems like a
 		// decent system even though not 100% accurate
 		temperature.CoreBodyTemperature = MathHelper.clamp(temperature.CoreBodyTemperature, TemperatureBody.MIN_COLD, TemperatureBody.MAX_HOT);
-		temperature.CoreBodyTemperature = MathHelper.lerp(temperature.HeatLossRate, temperature.CoreBodyTemperature, temperature.OutSideTemperature);
+		temperature.CoreBodyTemperature = MathHelper.lerp(temperature.HeatLossRate, temperature.CoreBodyTemperature, temperature.OutsideTemp);
 		// 100% would not allow evaporation to take place. This does not matter if it is cold.
-		float delta = TemperatureBody.TemperatureShiftType.IsWarming(temperature.ShiftType) ? MathHelper.lerp(humidity, .1f, .0f) : .1f;
-		temperature.CoreBodyTemperature = MathHelper.lerp(delta, temperature.CoreBodyTemperature, TemperatureBody.NORMAL);
+		temperature.Delta = TemperatureBody.TemperatureShiftType.IsWarming(temperature.ShiftType) ? MathHelper.lerp(humidity, .1f, .0f) : .1f;
+		temperature.CoreBodyTemperature = MathHelper.lerp(temperature.Delta, temperature.CoreBodyTemperature, TemperatureBody.NORMAL);
 
 		sync.Add(temperature);
 
-		if (FabricLoader.getInstance().isDevelopmentEnvironment() && FabricLoader.getInstance().getEnvironmentType() == EnvType.CLIENT)
-		{
-			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.clear();
-			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("CoreBodyTemperature = " + temperature.CoreBodyTemperature);
-			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("BodyTemperature = " + temperature.BodyTemperature);
-			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("Work = " + temperature.Work);
-			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("outsideTemperature = " + temperature.OutSideTemperature);
-			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("heatLossRate = " + temperature.HeatLossRate);
-			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("TemperatureShiftType = " + temperature.ShiftType);
-			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add(String.format("Wetness: Has %s, Value %.2f", wetnessValue > 0, wetnessValue));
-			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("season = " + SeasonAPI.getSeason());
-			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("airTemperature = " + airTemperature);
-			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("yTemperature = " + yTemperature);
-			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("lightTemperature = " + lightTemperature);
-			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("diff = " + diff);
-			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("delta = " + delta);
-			AdvancedPlayerClient.TemperatureDebugWindow.TemperatureDebugTextList.add("climate = " + climate);
-		}
-
+		Timer.Stop();
 	}
 
-	public float GetYTemperature(BlockPos pos)
+	public static float GetYTemperature(BlockPos pos)
 	{
 		float y = pos.getY();
 		if (y <= -32)
@@ -113,7 +105,7 @@ import net.minecraft.world.biome.Biome;
 		return 0f;
 	}
 
-	public float GetLightTemperature(int lightLevel)
+	public static float GetLightTemperature(int lightLevel)
 	{
 		return MathHelper.lerp(lightLevel / 15f, -4.5f, 4.5f);
 	}
