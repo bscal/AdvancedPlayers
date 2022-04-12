@@ -2,6 +2,7 @@ package me.bscal.advancedplayer.common.ecs;
 
 import com.esotericsoftware.kryo.Kryo;
 import me.bscal.advancedplayer.AdvancedPlayer;
+import me.bscal.advancedplayer.common.ecs.components.health.Health;
 import me.bscal.advancedplayer.common.food.MultiFood;
 import net.minecraft.util.Identifier;
 
@@ -22,6 +23,7 @@ public abstract class ECSManager
 		kryo.register(MultiFood.FoodGroups.class);
 		kryo.register(MultiFood.Cookable.class);
 		kryo.register(MultiFood.Perishable.class);
+		kryo.register(Health.HealthRegenStatus.class, new Health.HealthRegenStatusSerializer());
 	}
 
 	public abstract Kryo GetKryo();

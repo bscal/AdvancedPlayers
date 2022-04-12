@@ -9,6 +9,7 @@ import com.esotericsoftware.kryo.Kryo;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import me.bscal.advancedplayer.AdvancedPlayer;
 import me.bscal.advancedplayer.common.ecs.components.*;
+import me.bscal.advancedplayer.common.ecs.components.health.Health;
 import me.bscal.advancedplayer.common.ecs.systems.*;
 import me.bscal.advancedplayer.common.food.MultiFood;
 import net.minecraft.server.MinecraftServer;
@@ -43,8 +44,8 @@ public class ECSManagerServer extends ECSManager
 				new ThirstSystem(),
 				new BleedSystem(),
 				new DebugSystem(),
-				new SyncSystem())
-				.build();
+				new SyncSystem(),
+				new HealthSystem()).build();
 
 		worldConfig.register("server", server);
 		World = new World(worldConfig);
@@ -58,9 +59,10 @@ public class ECSManagerServer extends ECSManager
 
 		SavePath = new File(server.getSavePath(WorldSavePath.ROOT) + "/data/entities/");
 		PlayerArchetype = new ArchetypeBuilder().add(
-						Temperature.class,
-						Wetness.class, Thirst.class)
-				.build(World);
+				Temperature.class,
+				Wetness.class,
+				Thirst.class,
+				Health.class).build(World);
 
 		AdvancedPlayer.LOGGER.info("Initialized ECSManager Server!");
 	}
