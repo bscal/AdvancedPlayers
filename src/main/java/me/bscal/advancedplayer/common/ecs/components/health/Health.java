@@ -13,10 +13,10 @@ import java.util.List;
 public class Health extends Component
 {
 
-	public float HealthWithoutTempHealth;
-	public float MaxHealthReductionProgress;
-	public float TempHealth;
-	public float MaxTempHealth;
+	public float BonusHealth;
+	public float BlackedOutHealth;
+	public float InjuredHealth;
+	public SimpleQueue<HealthRegenStatus> Regens;
 	public final List<HealthRegenStatus> Regen = new ArrayList<>(3);
 
 	public void AddRegen(HealthRegenStatus regen)
@@ -65,6 +65,36 @@ public class Health extends Component
 	public record HealthRegen(String NameKey, String DescKey, float HpPerUpdate, float TicksPerUpdate, float DurationInTicks)
 	{
 		public static final Object2ObjectOpenHashMap<String, HealthRegen> NAME_TO_REGEN = new Object2ObjectOpenHashMap<>();
+	}
+
+	public static class SimpleQueue<T>
+	{
+		public final int m_Size;
+		public final T[] Array;
+		private int m_Index;
+
+		public SimpleQueue(){
+			this(1);
+		}
+
+		public SimpleQueue(int size)
+		{
+			m_Size = size;
+			Array = (T[]) new Object[m_Size];
+		}
+
+		public void Push(T val)
+		{
+			if (m_Index + 1 > m_Size) Pop();
+			Array[m_Index++] = val;
+		}
+
+		public T Pop()
+		{
+			if (m_Index <= 0) return null;
+			return Array[--m_Index];
+		}
+
 	}
 
 }

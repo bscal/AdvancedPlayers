@@ -19,7 +19,7 @@ public class GhoulModel extends AnimatedGeoModel<GhoulEntity>
 	@Override
 	public Identifier getTextureLocation(GhoulEntity object)
 	{
-		return new Identifier(AdvancedPlayer.MOD_ID, "textures/entity/ghoul.png");
+		return new Identifier(AdvancedPlayer.MOD_ID, "textures/entity/ghoul/ghoul.png");
 	}
 
 	@Override

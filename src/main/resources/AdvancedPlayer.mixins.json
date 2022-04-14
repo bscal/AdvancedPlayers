@@ -11,7 +11,9 @@
   ],
   "mixins": [
     "FoodComponentAccessor",
-    "LivingEntityMixin"
+    "LivingEntityMixin",
+    "MemoryModuleTypeAccessor",
+    "SensorTypeAccessor"
   ],
   "client": [
     "client.LightMapTextureManagerMixin",
