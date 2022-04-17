@@ -6,12 +6,18 @@ import com.artemis.systems.IntervalIteratingSystem;
 import me.bscal.advancedplayer.AdvancedPlayer;
 import me.bscal.advancedplayer.common.ecs.components.Bleed;
 import me.bscal.advancedplayer.common.ecs.components.RefPlayer;
+import me.bscal.advancedplayer.common.events.DamageEvents;
 import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
+import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.damage.DamageSource;
+import net.minecraft.entity.damage.EntityDamageSource;
+import net.minecraft.entity.damage.ProjectileDamageSource;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.LiteralText;
 import net.minecraft.text.Text;
+import net.minecraft.text.TranslatableText;
+import net.minecraft.util.ActionResult;
 import net.minecraft.util.Formatting;
 
 @All({ Bleed.class, RefPlayer.class }) public class BleedSystem extends IntervalIteratingSystem implements ServerPlayerEvents.AfterRespawn
@@ -19,7 +25,8 @@ import net.minecraft.util.Formatting;
 	/**
 	 * Processes every 60 ticks (3 secs)
 	 */
-	private static final int TIMESTEP = 60;
+	private static final int TIMESTEP = 100;
+	private static final TranslatableText BLEED_START_TEXT = new TranslatableText("ap.statuses.bleed");
 
 	private ComponentMapper<Bleed> m_Bleeds;
 	private ComponentMapper<RefPlayer> m_Players;
@@ -27,6 +34,12 @@ import net.minecraft.util.Formatting;
 	public BleedSystem()
 	{
 		super(null, TIMESTEP);
+
+		var style = BLEED_START_TEXT.getStyle().withColor(0xff0000);
+		BLEED_START_TEXT.setStyle(style);
+
+		ServerPlayerEvents.AFTER_RESPAWN.register(this);
+		DamageEvents.RECEIVED.register(this::OnReceivedDamage);
 	}
 
 	@Override
@@ -70,14 +83,28 @@ import net.minecraft.util.Formatting;
 	public void afterRespawn(ServerPlayerEntity oldPlayer, ServerPlayerEntity newPlayer, boolean alive)
 	{
 		var entityId = AdvancedPlayer.ECSManagerServer.GetEntity(oldPlayer);
-		m_Bleeds.remove(entityId);
+		if (m_Bleeds.has(entityId))
+			m_Bleeds.remove(entityId);
 	}
 
-	@Override
-	protected void initialize()
+	private ActionResult OnReceivedDamage(DamageSource damageSource, float v, LivingEntity livingEntity)
 	{
-		super.initialize();
-
-		ServerPlayerEvents.AFTER_RESPAWN.register(this);
+		if (livingEntity instanceof PlayerEntity player)
+		{
+			int entity = AdvancedPlayer.ECSManagerServer.GetEntity(player.getUuid());
+			if (damageSource instanceof EntityDamageSource && v > 1f && !m_Bleeds.has(entity))
+			{
+				int chance = AdvancedPlayer.Random.nextInt(20);
+				if (chance == 0)
+				{
+					var bleed = m_Bleeds.create(entity);
+					bleed.Damage = 1;
+					bleed.Duration = 20 * 300;
+					player.sendMessage(BLEED_START_TEXT, false);
+				}
+			}
+		}
+		return ActionResult.PASS;
 	}
+
 }
