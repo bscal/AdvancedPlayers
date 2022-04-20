@@ -11,11 +11,8 @@ import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.damage.EntityDamageSource;
-import net.minecraft.entity.damage.ProjectileDamageSource;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.LiteralText;
-import net.minecraft.text.Text;
 import net.minecraft.text.TranslatableText;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Formatting;
@@ -26,7 +23,9 @@ import net.minecraft.util.Formatting;
 	 * Processes every 60 ticks (3 secs)
 	 */
 	private static final int TIMESTEP = 100;
-	private static final TranslatableText BLEED_START_TEXT = new TranslatableText("ap.statuses.bleed");
+	private static final TranslatableText BLEED_START_TEXT = new TranslatableText("status.advancedplayer.bleed");
+	private static final TranslatableText BLEED_BLEEDING_TEXT = new TranslatableText("status.advancedplayer.bleeding");
+	private static final TranslatableText BLEED_INFECTED_TEXT = new TranslatableText("status.advandedplayer.bleed_infected");
 
 	private ComponentMapper<Bleed> m_Bleeds;
 	private ComponentMapper<RefPlayer> m_Players;
@@ -34,9 +33,6 @@ import net.minecraft.util.Formatting;
 	public BleedSystem()
 	{
 		super(null, TIMESTEP);
-
-		var style = BLEED_START_TEXT.getStyle().withColor(0xff0000);
-		BLEED_START_TEXT.setStyle(style);
 
 		ServerPlayerEvents.AFTER_RESPAWN.register(this);
 		DamageEvents.RECEIVED.register(this::OnReceivedDamage);
@@ -58,20 +54,9 @@ import net.minecraft.util.Formatting;
 		if (IsValid(player))
 		{
 			player.damage(DamageSource.GENERIC, bleed.Damage);
-			player.sendMessage(GenerateText(player, bleed), false);
+			var text = bleed.IsInfected ? BLEED_INFECTED_TEXT : BLEED_BLEEDING_TEXT;
+			player.sendMessage(text.formatted(Formatting.RED), false);
 		}
-	}
-
-	private Text GenerateText(PlayerEntity player, Bleed bleed)
-	{
-		StringBuilder sb = new StringBuilder();
-		sb.append("You seem to be bleeding");
-		if (bleed.IsInfected) sb.append(" and the wounds is festering");
-		sb.append("...");
-
-		LiteralText text = new LiteralText(sb.toString());
-		text.formatted(Formatting.RED);
-		return text;
 	}
 
 	private boolean IsValid(PlayerEntity p)
@@ -100,7 +85,7 @@ import net.minecraft.util.Formatting;
 					var bleed = m_Bleeds.create(entity);
 					bleed.Damage = 1;
 					bleed.Duration = 20 * 300;
-					player.sendMessage(BLEED_START_TEXT, false);
+					player.sendMessage(BLEED_START_TEXT.formatted(Formatting.RED), false);
 				}
 			}
 		}

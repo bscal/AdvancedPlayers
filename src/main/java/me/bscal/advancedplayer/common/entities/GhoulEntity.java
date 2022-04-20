@@ -3,6 +3,9 @@ package me.bscal.advancedplayer.common.entities;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.mojang.serialization.Dynamic;
+import me.bscal.advancedplayer.AdvancedPlayer;
+import me.bscal.advancedplayer.common.ecs.ai.NearestLowHealthLivingEntities;
+import me.bscal.advancedplayer.common.ecs.components.Bleed;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
@@ -35,15 +38,12 @@ import software.bernie.geckolib3.core.manager.AnimationFactory;
 public class GhoulEntity extends HostileEntity implements IAnimatable
 {
 
-	private static final int MAX_HEALTH = 40;
-	private static final float MOVEMENT_SPEED = 0.35f;
-	private static final int ATTACK_DAMAGE = 5;
 	private static final float[] LIFESTEAL = new float[] { 2.0f, 2.0f, 3.0f, 4.0f };
 
-	protected static final ImmutableList<? extends SensorType<? extends Sensor<? super GhoulEntity>>> SENSORS = ImmutableList.of(GhoulBrain.NEAREST_LOW_HP_ENTITIES);
+	protected static final ImmutableList<? extends SensorType<? extends Sensor<? super GhoulEntity>>> SENSORS = ImmutableList.of(NearestLowHealthLivingEntities.NEAREST_LOW_HP_ENTITIES);
 
 	protected static final ImmutableList<? extends MemoryModuleType<?>> MEMORY_MODULES = ImmutableList.of(
-			GhoulBrain.LOWEST_HP_PLAYER,
+			NearestLowHealthLivingEntities.LOWEST_HP_PLAYER,
 			MemoryModuleType.NEAREST_PLAYERS,
 			MemoryModuleType.NEAREST_HOSTILE,
 			MemoryModuleType.NEAREST_VISIBLE_TARGETABLE_PLAYER,
@@ -89,6 +89,9 @@ public class GhoulEntity extends HostileEntity implements IAnimatable
 	public boolean tryAttack(Entity target)
 	{
 		float f = (float)this.getAttributeValue(EntityAttributes.GENERIC_ATTACK_DAMAGE);
+		int entityId = AdvancedPlayer.ECSManagerServer.GetEntity(target.getUuid());
+		var entity = AdvancedPlayer.ECSManagerServer.World.getEntity(entityId);
+		if (entity.getComponent(Bleed.class) != null) f *= 1.25f;
 
 		boolean bl = target.damage(DamageSource.mob(this), f);
 		if (bl)
@@ -149,8 +152,9 @@ public class GhoulEntity extends HostileEntity implements IAnimatable
 	public static DefaultAttributeContainer.Builder CreateMobAttributes()
 	{
 		return LivingEntity.createLivingAttributes()
-				.add(EntityAttributes.GENERIC_MOVEMENT_SPEED, MOVEMENT_SPEED)
-				.add(EntityAttributes.GENERIC_FOLLOW_RANGE, 16.0)
+				.add(EntityAttributes.GENERIC_MAX_HEALTH, 20.0f)
+				.add(EntityAttributes.GENERIC_MOVEMENT_SPEED, .35f)
+				.add(EntityAttributes.GENERIC_FOLLOW_RANGE, 24.0f)
 				.add(EntityAttributes.GENERIC_ATTACK_KNOCKBACK);
 	}
 }

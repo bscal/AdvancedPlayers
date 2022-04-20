@@ -3,7 +3,7 @@
   "minVersion": "0.8",
   "package": "me.bscal.advancedplayer.mixin",
   "compatibilityLevel": "JAVA_17",
-  "a": [
+  "COMMENTED_OUT": [
     "WaterFluidMixin",
     "WaterFluidMixin$StillWaterMixin",
     "BucketItemMixin",
@@ -13,7 +13,8 @@
     "FoodComponentAccessor",
     "LivingEntityMixin",
     "MemoryModuleTypeAccessor",
-    "SensorTypeAccessor"
+    "SensorTypeAccessor",
+    "ServerPlayerEntityMixin"
   ],
   "client": [
     "client.LightMapTextureManagerMixin",

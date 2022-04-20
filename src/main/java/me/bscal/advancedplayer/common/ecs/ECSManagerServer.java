@@ -11,10 +11,9 @@ import me.bscal.advancedplayer.AdvancedPlayer;
 import me.bscal.advancedplayer.common.ecs.components.*;
 import me.bscal.advancedplayer.common.ecs.components.health.Health;
 import me.bscal.advancedplayer.common.ecs.systems.*;
-import me.bscal.advancedplayer.common.food.MultiFood;
+import me.bscal.advancedplayer.common.utils.ServerPlayerAccess;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.WorldSavePath;
 
 import java.io.File;
@@ -129,7 +128,8 @@ public class ECSManagerServer extends ECSManager
 
 		entity.edit().add(new Sync());
 
-		UUIDToEntityId.put(serverPlayerEntity.getUuid(), entity.getId());
+		((ServerPlayerAccess)serverPlayerEntity).SetAPEntityId(entityId);
+		UUIDToEntityId.put(serverPlayerEntity.getUuid(), entityId);
 	}
 
 	public void SaveAndRemovePlayer(ServerPlayerEntity serverPlayerEntity)
