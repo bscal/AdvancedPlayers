@@ -10,8 +10,8 @@ import me.bscal.advancedplayer.common.ecs.components.Thirst;
 import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
-import net.minecraft.text.TranslatableText;
 import net.minecraft.util.math.MathHelper;
 
 @All({Thirst.class, RefPlayer.class, Sync.class})
@@ -25,7 +25,7 @@ public class ThirstSystem extends IntervalIteratingSystem implements ServerPlaye
 	private static final float INTERVAL = 5f;
 	private static final float MSG_INTERVAL = (INTERVAL / 20f) * 60f * 5f; // sec -> min
 
-	private static final Text THIRSTY_MSG = new TranslatableText("status.thirst.thirsty");
+	private static final MutableText THIRSTY_MSG = Text.translatable("status.thirst.thirsty");
 
 	private ComponentMapper<Thirst> m_ThirstMapper;
 	private ComponentMapper<RefPlayer> m_PlayerMapper;

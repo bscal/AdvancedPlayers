@@ -20,6 +20,7 @@ import org.spongepowered.asm.mixin.injection.ModifyArg;
 			"Lnet/minecraft/block/BlockState;I)Z"), index = 1)
 	public BlockState setBlockStartMixin(BlockState state)
 	{
+
 		return state.with(FluidBlock.LEVEL, 8);
 	}
 

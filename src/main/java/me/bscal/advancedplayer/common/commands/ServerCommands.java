@@ -6,10 +6,11 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import me.bscal.advancedplayer.AdvancedPlayer;
 import me.bscal.advancedplayer.common.items.MultiFoodItem;
-import net.fabricmc.fabric.api.command.v1.CommandRegistrationCallback;
+import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.minecraft.command.CommandRegistryAccess;
 import net.minecraft.command.argument.ItemStackArgument;
 import net.minecraft.command.argument.ItemStackArgumentType;
-import net.minecraft.item.ItemStack;
+import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 
 import static net.minecraft.server.command.CommandManager.argument;
@@ -29,12 +30,12 @@ public final class ServerCommands
 	{
 
 		@Override
-		public void register(CommandDispatcher<ServerCommandSource> dispatcher, boolean dedicated)
+		public void register(CommandDispatcher<ServerCommandSource> dispatcher, CommandRegistryAccess registryAccess, CommandManager.RegistrationEnvironment environment)
 		{
 			dispatcher.register(
 					literal("multifood")
 							.then(literal("add")
-								.then(argument(INGREDIENT_ARG, ItemStackArgumentType.itemStack())
+								.then(argument(INGREDIENT_ARG, ItemStackArgumentType.itemStack(registryAccess))
 										.executes(this))));
 		}
 
@@ -63,5 +64,6 @@ public final class ServerCommands
 			}
 			return 0;
 		}
+
 	}
 }

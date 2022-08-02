@@ -23,12 +23,6 @@ import java.util.Set;
 {
 
 	/**
-	 * Server and client entityId's are not the same.
-	 * Uses Minecraft's ServerPlayerEntity.getId() as the NetworkId
-	 */
-	public int NetworkId;
-
-	/**
 	 * List of AddContainers which hold the components instance, and components class name.
 	 */
 	public List<Component> ComponentsToAdd = new ArrayList<>();
