@@ -1,30 +1,58 @@
 package me.bscal.advancedplayer.common;
 
-import com.artemis.Entity;
-import com.artemis.utils.IntBag;
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import me.bscal.advancedplayer.AdvancedPlayer;
-import me.bscal.advancedplayer.common.ecs.components.RefPlayer;
-import me.bscal.advancedplayer.common.ecs.components.Sync;
-import me.bscal.advancedplayer.common.utils.ServerPlayerAccess;
-import net.minecraft.nbt.NbtCompound;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.world.PersistentState;
+import net.minecraft.util.WorldSavePath;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 public class APPlayerManager
 {
 
-   public static final String SAVE_PATH = "";
-   public static final String SAVE_EXTENSION = "";
+    public static final String SAVE_EXTENSION = ".bin";
 
-    public void LoadOrCreatePlayer(ServerPlayerEntity serverPlayerEntity)
+    public final Object2ObjectOpenHashMap<UUID, APPlayer> UUIDToPlayerMap;
+    public final List<APPlayer> PlayerList;
+    public final String SavePath;
+
+    public APPlayerManager(MinecraftServer server)
     {
-        APPlayer result;
+        UUIDToPlayerMap = new Object2ObjectOpenHashMap<>(10);
+        PlayerList = new ArrayList<>(10);
+        SavePath = server.getSavePath(WorldSavePath.ROOT) + "/" + AdvancedPlayer.MOD_ID + "/players/";
+    }
+
+    public void AddAPPlayer(ServerPlayerEntity serverPlayer, APPlayer apPlayer)
+    {
+        if (UUIDToPlayerMap.putIfAbsent(serverPlayer.getUuid(), apPlayer) == null)
+        {
+            PlayerList.add(apPlayer);
+        }
+    }
+
+    public APPlayer RemoveAPPlayer(UUID uuid)
+    {
+        var apPlayer = UUIDToPlayerMap.remove(uuid);
+        if (apPlayer != null)
+        {
+            PlayerList.remove(apPlayer);
+        }
+        return apPlayer;
+    }
+
+    public APPlayer LoadOrCreatePlayer(ServerPlayerEntity serverPlayerEntity)
+    {
+        APPlayer result = UUIDToPlayerMap.get(serverPlayerEntity.getUuid());
+        if (result != null) return result;
+
         File file = new File(SavePath, serverPlayerEntity.getUuid() + SAVE_EXTENSION);
         if (file.exists())
         {
@@ -32,59 +60,39 @@ public class APPlayerManager
             {
                 FileInputStream fis = new FileInputStream(file);
                 byte[] data = fis.readAllBytes();
-                APP
-                var savedData = SerializationManager.load(fis, SaveFileFormat.class);
-                entityId = savedData.entities.get(0);
+                result = APPlayer.Deserialize(serverPlayerEntity, data);
                 fis.close();
-            }
-            catch (IOException e)
+            } catch (IOException e)
             {
+                AdvancedPlayer.LOGGER.error("Could not load player");
                 e.printStackTrace();
             }
         }
-        else
-        {
-            entityId = World.create(PlayerArchetype);
-        }
-        Entity entity = World.getEntity(entityId);
-
-        // Creates transient components
-        RefPlayer refPlayer = new RefPlayer();
-        refPlayer.Player = serverPlayerEntity;
-        entity.edit().add(refPlayer);
-
-        entity.edit().add(new Sync());
-
-        ((ServerPlayerAccess)serverPlayerEntity).SetAPEntityId(entityId);
-        UUIDToEntityId.put(serverPlayerEntity.getUuid(), entityId);
+        if (result == null)
+            result = new APPlayer(serverPlayerEntity);
+        result.Sync();
+        AddAPPlayer(serverPlayerEntity, result);
+        return result;
     }
 
     public void SaveAndRemovePlayer(ServerPlayerEntity serverPlayerEntity)
     {
-        int entityId = UUIDToEntityId.removeInt(serverPlayerEntity);
-
-        IntBag entities = new IntBag(1);
-        entities.add(entityId);
-
-        File file = new File(SavePath, serverPlayerEntity.getUuid() + SAVE_EXTENSION);
-        file.getParentFile().mkdirs();
-
-        try
+        APPlayer player = RemoveAPPlayer(serverPlayerEntity.getUuid());
+        if (player != null)
         {
-            FileOutputStream fos = new FileOutputStream(file);
-            SerializationManager.save(fos, new SaveFileFormat(entities));
-            fos.close();
+            File file = new File(SavePath, serverPlayerEntity.getUuid() + SAVE_EXTENSION);
+            file.getParentFile().mkdirs();
+            byte[] data = APPlayer.Serialize(player);
+            try
+            {
+                FileOutputStream fos = new FileOutputStream(file);
+                fos.write(data);
+                fos.close();
+            } catch (IOException e)
+            {
+                AdvancedPlayer.LOGGER.error("Could not save player");
+                e.printStackTrace();
+            }
         }
-        catch (IOException e)
-        {
-            AdvancedPlayer.LOGGER.error("Could not save player");
-            e.printStackTrace();
-        }
-
-        // Makes sure to set Player to null
-        World.getEntity(entityId).getComponent(RefPlayer.class).Player = null;
-        World.delete(entityId);
     }
-
-
 }

@@ -3,7 +3,6 @@ package me.bscal.advancedplayer.common.mechanics.temperature;
 import me.bscal.advancedplayer.client.AdvancedPlayerClient;
 import me.bscal.advancedplayer.common.mechanics.body.EntityBodyComponent;
 import me.bscal.advancedplayer.common.mechanics.body.FloatBodyPart;
-import me.bscal.seasons.api.SeasonAPI;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.entity.player.PlayerEntity;
@@ -54,7 +53,7 @@ public class TemperatureBody extends EntityBodyComponent
 	{
 		BlockPos pos = m_Provider.getBlockPos();
 		RegistryEntry<Biome> biome = m_Provider.world.getBiome(pos);
-		var seasons = SeasonAPI.getSeasonByBiome(biome.value());
+		//var seasons = SeasonAPI.getSeasonByBiome(biome.value());
 		BiomeClimate climate = TemperatureBiomeRegistry.Get(biome.value());
 		float airTemperature = climate.GetCurrentTemperature();
 		float yTemperature = GetYTemperature(pos);

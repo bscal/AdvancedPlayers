@@ -31,21 +31,11 @@ dependencies {
     // Fabric API. This is technically optional, but you probably want it anyway.
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
-    modApi("com.github.bscal:MCSeasons:v1.1.1")
-
+    //modImplementation("com.github.bscal:MCSeasons:v1.1.1")
     // Used to dev environment so i don't need to download the mod
     // include("com.github.bscal:MCSeasons:${project.mcseasons_version}")
     modImplementation include("io.github.cottonmc:LibGui:${project.libgui_version}")
-
-    modImplementation include("com.esotericsoftware:kryo:5.3.0")
-
-    modImplementation include("net.onedaybeard.artemis:artemis-odb:${project.artemis_odb_version}")
-
-    modImplementation("software.bernie.geckolib:geckolib-fabric-1.18:${project.geckolib_version}")
-}
-
-remapJar {
-
+    modImplementation include("software.bernie.geckolib:geckolib-fabric-1.19:3.1.12")
 }
 
 processResources {

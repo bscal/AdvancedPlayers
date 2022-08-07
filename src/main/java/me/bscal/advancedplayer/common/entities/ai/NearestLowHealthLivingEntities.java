@@ -1,4 +1,4 @@
-package me.bscal.advancedplayer.common.ecs.ai;
+package me.bscal.advancedplayer.common.entities.ai;
 
 import com.google.common.collect.ImmutableSet;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;

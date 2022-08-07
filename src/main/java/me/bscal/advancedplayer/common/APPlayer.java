@@ -1,12 +1,10 @@
 package me.bscal.advancedplayer.common;
 
-import io.netty.buffer.Unpooled;
-import me.bscal.advancedplayer.common.ecs.ECSManagerServer;
+import io.netty.buffer.PooledByteBufAllocator;
+import me.bscal.advancedplayer.AdvancedPlayer;
 import me.bscal.advancedplayer.common.mechanics.temperature.BiomeClimate;
 import me.bscal.advancedplayer.common.mechanics.temperature.TemperatureBiomeRegistry;
 import me.bscal.advancedplayer.common.mechanics.temperature.TemperatureBody;
-import me.bscal.advancedplayer.common.mechanics.temperature.TemperatureClothing;
-import me.bscal.seasons.api.SeasonAPI;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.effect.StatusEffects;
@@ -14,6 +12,7 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.random.Random;
@@ -21,14 +20,13 @@ import net.minecraft.util.registry.RegistryEntry;
 import net.minecraft.world.LightType;
 import net.minecraft.world.biome.Biome;
 import org.apache.commons.lang3.SerializationUtils;
-import org.jetbrains.annotations.Nullable;
 
 import java.io.Serializable;
-import java.util.UUID;
 
 public class APPlayer implements Serializable
 {
 
+    public static final Identifier SYNC_PACKET = new Identifier(AdvancedPlayer.MOD_ID, "applayer_sync");
     public static final Random RANDOM = Random.create();
 
     public transient ServerPlayerEntity Player;
@@ -52,7 +50,7 @@ public class APPlayer implements Serializable
     public float WindResistance;
     public TemperatureBody.TemperatureShiftType ShiftType;
 
-    private int m_LastSyncedTick;
+    private transient int m_LastSyncedTick;
 
     public APPlayer(PlayerEntity player)
     {
@@ -121,12 +119,19 @@ public class APPlayer implements Serializable
         if (Player.world == null || Player.world.isClient || Player.isDisconnected()) return;
         m_LastSyncedTick = Player.world.getServer().getTicks();
         byte[] data = Serialize(this);
-        PacketByteBuf buffer = new PacketByteBuf(Unpooled.wrappedBuffer(data));
-        ServerPlayNetworking.send(Player, ECSManagerServer.SYNC_CHANNEL, buffer);
+        assert data.length < 256 : "APPlayer data array is large, is this intended?";
+        var buffer = PooledByteBufAllocator.DEFAULT.directBuffer(data.length, 256);
+
+        PacketByteBuf buf = new PacketByteBuf(buffer);
+        buf.writeByteArray(data);
+        AdvancedPlayer.LOGGER.info(String.format("Syncing(%s) Buf Cap: %d, Buf MaxCap: %d", Player.getDisplayName().toString(), buf.capacity(), buf.maxCapacity()));
+        ServerPlayNetworking.send(Player, SYNC_PACKET, buf);
+        buf.release();
     }
 
     public static byte[] Serialize(APPlayer player)
     {
+        // NOTE if this gets to large we can manually compress fields
         return SerializationUtils.serialize(player);
     }
 
@@ -136,7 +141,6 @@ public class APPlayer implements Serializable
         apPlayer.Player = player;
         return apPlayer;
     }
-
 
 
     public static boolean Chance(float chance)

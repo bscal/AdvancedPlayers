@@ -44,22 +44,6 @@ public class DamageEvents
         ActionResult OnBeforeReductions(DamageSource source, float amount, LivingEntity entity);
     }
 
-    public static final Event<Received> RECEIVED =
-            EventFactory.createArrayBacked(Received.class, listeners -> (src, amount, entity) ->
-            {
-                for (var listener : listeners)
-                {
-                    var result = listener.OnReceivedDamage(src, amount, entity);
-                    if (result != ActionResult.PASS) return result;
-                }
-                return ActionResult.PASS;
-            });
-
-    public interface Received
-    {
-        ActionResult OnReceivedDamage(DamageSource source, float amount, LivingEntity entity);
-    }
-
     public static final Event<Blocked> BLOCKED =
             EventFactory.createArrayBacked(Blocked.class,
                     (src, amountAfterBlock, amount, entity) -> ActionResult.PASS,

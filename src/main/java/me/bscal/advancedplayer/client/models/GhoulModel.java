@@ -10,22 +10,22 @@ import software.bernie.geckolib3.model.AnimatedGeoModel;
 @Environment(EnvType.CLIENT)
 public class GhoulModel extends AnimatedGeoModel<GhoulEntity>
 {
-	@Override
-	public Identifier getModelLocation(GhoulEntity object)
-	{
-		return new Identifier(AdvancedPlayer.MOD_ID, "geo/ghoul.geo.json");
-	}
+    @Override
+    public Identifier getModelResource(GhoulEntity object)
+    {
+        return new Identifier(AdvancedPlayer.MOD_ID, "geo/ghoul.geo.json");
+    }
 
-	@Override
-	public Identifier getTextureLocation(GhoulEntity object)
-	{
-		return new Identifier(AdvancedPlayer.MOD_ID, "textures/entity/ghoul/ghoul.png");
-	}
+    @Override
+    public Identifier getTextureResource(GhoulEntity object)
+    {
+        return new Identifier(AdvancedPlayer.MOD_ID, "textures/entity/ghoul/ghoul.png");
+    }
 
-	@Override
-	public Identifier getAnimationFileLocation(GhoulEntity animatable)
-	{
-		return new Identifier(AdvancedPlayer.MOD_ID, "animations/ghoul.animation.json");
-	}
+    @Override
+    public Identifier getAnimationResource(GhoulEntity animatable)
+    {
+        return new Identifier(AdvancedPlayer.MOD_ID, "animations/ghoul.animation.json");
+    }
 
 }

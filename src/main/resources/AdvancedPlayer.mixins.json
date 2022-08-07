@@ -3,12 +3,6 @@
   "minVersion": "0.8",
   "package": "me.bscal.advancedplayer.mixin",
   "compatibilityLevel": "JAVA_17",
-  "COMMENTED_OUT": [
-    "WaterFluidMixin",
-    "WaterFluidMixin$StillWaterMixin",
-    "BucketItemMixin",
-    "FlowableFluidMixin"
-  ],
   "mixins": [
     "FoodComponentAccessor",
     "LivingEntityMixin",

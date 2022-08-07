@@ -4,25 +4,16 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.mojang.datafixers.util.Pair;
-import it.unimi.dsi.fastutil.objects.ObjectArrayList;
-import me.bscal.advancedplayer.common.ecs.ai.NearestLowHealthLivingEntities;
-import me.bscal.advancedplayer.mixin.MemoryModuleTypeAccessor;
-import me.bscal.advancedplayer.mixin.SensorTypeAccessor;
+import me.bscal.advancedplayer.common.entities.ai.NearestLowHealthLivingEntities;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.ai.brain.Activity;
 import net.minecraft.entity.ai.brain.Brain;
 import net.minecraft.entity.ai.brain.MemoryModuleType;
-import net.minecraft.entity.ai.brain.sensor.NearestPlayersSensor;
-import net.minecraft.entity.ai.brain.sensor.Sensor;
-import net.minecraft.entity.ai.brain.sensor.SensorType;
 import net.minecraft.entity.ai.brain.task.*;
 import net.minecraft.entity.mob.MobEntity;
-import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 
-import java.util.Comparator;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
