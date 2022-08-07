@@ -21,8 +21,10 @@ import net.minecraft.util.registry.RegistryEntry;
 import net.minecraft.world.LightType;
 import net.minecraft.world.biome.Biome;
 import org.apache.commons.lang3.SerializationUtils;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.Serializable;
+import java.util.UUID;
 
 public class APPlayer implements Serializable
 {
@@ -109,17 +111,15 @@ public class APPlayer implements Serializable
         Wetness = MathHelper.clamp(Wetness + (Player.isSubmergedInWater() ? -1 : 1), 0, 100);
 
         ProcessTemperature(server);
+
+        int tickDifference = server.getTicks() - m_LastSyncedTick;
+        if (tickDifference > 20 * 5) Sync();
     }
 
     public void Sync()
     {
         if (Player.world == null || Player.world.isClient || Player.isDisconnected()) return;
-
-        int tick = Player.world.getServer().getTicks();
-        int lastTick = tick - m_LastSyncedTick;
-        if (lastTick < 20 * 5) return;
-        m_LastSyncedTick = tick;
-
+        m_LastSyncedTick = Player.world.getServer().getTicks();
         byte[] data = Serialize(this);
         PacketByteBuf buffer = new PacketByteBuf(Unpooled.wrappedBuffer(data));
         ServerPlayNetworking.send(Player, ECSManagerServer.SYNC_CHANNEL, buffer);
@@ -136,6 +136,8 @@ public class APPlayer implements Serializable
         apPlayer.Player = player;
         return apPlayer;
     }
+
+
 
     public static boolean Chance(float chance)
     {

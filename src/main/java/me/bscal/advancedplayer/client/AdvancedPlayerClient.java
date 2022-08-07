@@ -3,6 +3,7 @@ package me.bscal.advancedplayer.client;
 import me.bscal.advancedplayer.AdvancedPlayer;
 import me.bscal.advancedplayer.client.debug.DebugWindow;
 import me.bscal.advancedplayer.client.ui.PlayerStatusHud;
+import me.bscal.advancedplayer.common.APPlayer;
 import me.bscal.advancedplayer.common.ecs.ECSManagerClient;
 import me.bscal.advancedplayer.common.ecs.ECSManagerServer;
 import me.bscal.advancedplayer.common.entities.EntityRegistry;
@@ -45,6 +46,8 @@ import java.util.stream.Stream;
 	public static SpriteAtlasTexture.Data AtlasTextureData;
 	public static ECSManagerClient ECSManagerClient;
 
+	public static APPlayer ClientAPPlayer;
+
 	@Override
 	public void onInitializeClient()
 	{
@@ -53,13 +56,21 @@ import java.util.stream.Stream;
 
 		EntityRendererRegistry.register(EntityRegistry.GHOUL_ENTITY, GhoulRenderer::new);
 
-		ClientPlayConnectionEvents.INIT.register((a, b) -> {
+		ClientPlayConnectionEvents.INIT.register((handler, client) -> {
 			ECSManagerClient = new ECSManagerClient(AdvancedPlayer.Kryo);
+
 		});
 
 		ClientPlayNetworking.registerGlobalReceiver(ECSManagerServer.SYNC_CHANNEL, (client, handler, buf, responseSender) -> {
 			if (ECSManagerClient != null)
 				ECSManagerClient.HandleSyncPacket(client, handler, buf, responseSender);
+
+			final byte[] data = buf.readByteArray();
+			final APPlayer newPlayer = APPlayer.Deserialize(null, data);
+			client.execute(() ->
+			{
+				ClientAPPlayer = newPlayer;
+			});
 		});
 
 		HudRenderCallback.EVENT.register(DEBUG_WINDOW);

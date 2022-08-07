@@ -2,6 +2,8 @@ package me.bscal.advancedplayer;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.google.gson.Gson;
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+import me.bscal.advancedplayer.common.APPlayer;
 import me.bscal.advancedplayer.common.commands.ServerCommands;
 import me.bscal.advancedplayer.common.ecs.ECSManager;
 import me.bscal.advancedplayer.common.ecs.ECSManagerServer;
@@ -20,14 +22,14 @@ import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRe
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.ActionResult;
 import net.minecraft.world.World;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.Logger;
 
-import java.util.Optional;
-import java.util.Random;
+import java.util.*;
 
 public class AdvancedPlayer implements ModInitializer
 {
@@ -42,6 +44,10 @@ public class AdvancedPlayer implements ModInitializer
 
 	private static boolean SeasonsEnabled;
 	private static MinecraftServer Server;
+
+	// TODO move
+	public static final Object2ObjectOpenHashMap<UUID, APPlayer> AP_PLAYERS = new Object2ObjectOpenHashMap<>(10);
+	public static final List<APPlayer> PLAYER_LIST = new ArrayList<>(10);
 
 	@Override
 	public void onInitialize()
@@ -67,9 +73,22 @@ public class AdvancedPlayer implements ModInitializer
 			ECSManagerServer = new ECSManagerServer(server);
 		});
 
-		ServerPlayConnectionEvents.INIT.register((handler, sender) -> ECSManagerServer.LoadOrCreatePlayer(handler.player));
+		ServerPlayConnectionEvents.INIT.register((handler, sender) -> {
+			ECSManagerServer.LoadOrCreatePlayer(handler.player);
+			APPlayer player = new APPlayer(handler.player);
+			AP_PLAYERS.put(handler.player.getUuid(), player);
+		});
 		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> ECSManagerServer.SaveAndRemovePlayer(handler.player));
-		ServerTickEvents.END_SERVER_TICK.register(server -> ECSManagerServer.Tick(server));
+		ServerTickEvents.END_SERVER_TICK.register(server ->
+		{
+			ECSManagerServer.Tick(server);
+
+			for (var apPlayer : PLAYER_LIST)
+			{
+				apPlayer.Update(server);
+			}
+
+		});
 	}
 
 	private void RegisterEntityAttributes()
@@ -96,6 +115,24 @@ public class AdvancedPlayer implements ModInitializer
 	public static MinecraftServer GetServer()
 	{
 		return Server;
+	}
+
+	public void AddAPPlayer(ServerPlayerEntity player)
+	{
+		var apPlayer = new APPlayer(player); // TODO loading/saving
+		if (AP_PLAYERS.put(player.getUuid(), apPlayer) != null)
+		{
+			PLAYER_LIST.add(apPlayer);
+		}
+	}
+
+	public void RemoveAPPlayer(ServerPlayerEntity player)
+	{
+		var apPlayer = AP_PLAYERS.remove(player.getUuid());
+		if (apPlayer != null)
+		{
+			PLAYER_LIST.remove(apPlayer);
+		}
 	}
 
 }
