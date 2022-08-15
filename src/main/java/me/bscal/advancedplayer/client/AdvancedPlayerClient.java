@@ -58,12 +58,14 @@ public class AdvancedPlayerClient implements ClientModInitializer
         ClientPlayNetworking.registerGlobalReceiver(APPlayer.SYNC_PACKET,
                 ((client, handler, buf, responseSender) ->
                 {
-                    final byte[] data = buf.readByteArray();
+                    ClientAPPlayer.Deserialize(buf);
+/*                    final byte[] data = buf.readByteArray();
+
                     final APPlayer newPlayer = APPlayer.Deserialize(null, data);
                     client.execute(() ->
                     {
                         ClientAPPlayer = newPlayer;
-                    });
+                    });*/
                 }));
 
         HudRenderCallback.EVENT.register(DEBUG_WINDOW);

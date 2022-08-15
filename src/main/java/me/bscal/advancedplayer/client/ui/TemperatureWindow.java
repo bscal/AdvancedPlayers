@@ -66,12 +66,12 @@ public class TemperatureWindow implements PlayerStatusHud.PlayerStatusRenderer
     }
 
     @Override
-    public void Render(MatrixStack matrixStack, float tickDelta, MinecraftClient client, int x, int y, int textureWidth, int textureHeight)
+    public void Render(MatrixStack matrixStack, float tickDelta, MinecraftClient client, int xOffset, int x, int y, int textureWidth, int textureHeight)
     {
         var coreBodyTemperature = AdvancedPlayerClient.ClientAPPlayer.CoreBodyTemperature;
         var shiftType = AdvancedPlayerClient.ClientAPPlayer.ShiftType;
 
-        int xx = x + 5;
+        int xx = xOffset + x + 5;
         InGameHud.drawSprite(matrixStack, xx, y, 0, 16, 32, Thermometer);
 
         var spriteId = SetTemperature(coreBodyTemperature);

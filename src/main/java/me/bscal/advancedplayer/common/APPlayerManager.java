@@ -1,7 +1,10 @@
 package me.bscal.advancedplayer.common;
 
+import io.netty.buffer.PooledByteBufAllocator;
+import io.netty.buffer.Unpooled;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import me.bscal.advancedplayer.AdvancedPlayer;
+import net.minecraft.network.PacketByteBuf;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.WorldSavePath;
@@ -60,7 +63,9 @@ public class APPlayerManager
             {
                 FileInputStream fis = new FileInputStream(file);
                 byte[] data = fis.readAllBytes();
-                result = APPlayer.Deserialize(serverPlayerEntity, data);
+                PacketByteBuf buf = new PacketByteBuf(Unpooled.wrappedBuffer(data));
+                result = new APPlayer(serverPlayerEntity);
+                result.Deserialize(buf);
                 fis.close();
             } catch (IOException e)
             {
@@ -82,11 +87,13 @@ public class APPlayerManager
         {
             File file = new File(SavePath, serverPlayerEntity.getUuid() + SAVE_EXTENSION);
             file.getParentFile().mkdirs();
-            byte[] data = APPlayer.Serialize(player);
+            PacketByteBuf buf = new PacketByteBuf(
+                    PooledByteBufAllocator.DEFAULT.directBuffer(128, 1024));
+            player.Serialize(buf);
             try
             {
                 FileOutputStream fos = new FileOutputStream(file);
-                fos.write(data);
+                fos.write(buf.getWrittenBytes());
                 fos.close();
             } catch (IOException e)
             {

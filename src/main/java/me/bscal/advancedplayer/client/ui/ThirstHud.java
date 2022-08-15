@@ -21,17 +21,17 @@ public class ThirstHud implements PlayerStatusHud.PlayerStatusRenderer
     }
 
     @Override
-    public void Render(MatrixStack matrixStack, float tickDelta, MinecraftClient client, int x, int y, int textureWidth, int textureHeight)
+    public void Render(MatrixStack matrixStack, float tickDelta, MinecraftClient client, int xOffset, int x, int y, int textureWidth, int textureHeight)
     {
         var thirst = AdvancedPlayerClient.ClientAPPlayer.Thirst;
         float normalThirst = MathUtils.Normalize(thirst, -100, 100);
 
-        int xx = x + 5;
+        int xx = xOffset + x + 5;
         int yy = y + 15;
         InGameHud.drawTexture(matrixStack, xx, yy, WaterSkinSprites.getX(), WaterSkinSprites.getY(), 16, 16, textureWidth, textureHeight);
-        int xOffset = (int) (normalThirst * MAX_VALUE) * SHEET_WIDTH;
-        if (xOffset > 0)
-            InGameHud.drawTexture(matrixStack, xx, yy, WaterSkinSprites.getX() + xOffset, WaterSkinSprites.getY(), 16, 16, textureWidth, textureHeight);
+        int textureXCoord = (int) (normalThirst * MAX_VALUE) * SHEET_WIDTH;
+        if (textureXCoord > 0)
+            InGameHud.drawTexture(matrixStack, xx, yy, WaterSkinSprites.getX() + textureXCoord, WaterSkinSprites.getY(), 16, 16, textureWidth, textureHeight);
     }
 }
 

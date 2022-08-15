@@ -8,6 +8,7 @@ import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.item.ItemStack;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -38,21 +39,29 @@ public class PlayerStatusHud implements HudRenderCallback
 
         RenderSystem.setShaderTexture(0, AdvancedPlayerClient.AtlasTexture.getId());
 
-        int x = 8;
-        int y = client.getWindow().getScaledHeight() - 38;
+        int x = client.getWindow().getScaledWidth() / 2 - 91 - 29 - 44;
+        int y = client.getWindow().getScaledHeight() - 34;
         int iconSpacing = 20;
         //int x = client.getWindow().getScaledWidth() / 2 - X_OFFSET;
         //int y = client.getWindow().getScaledHeight() - Y_OFFSET;
 
+
+/*        for(n = 0; n < 9; ++n) {
+            o = i - 90 + n * 20 + 2;
+            p = this.scaledHeight - 16 - 3;
+            this.renderHotbarItem(o, p, tickDelta, playerEntity, (ItemStack)playerEntity.getInventory().main.get(n), m++);
+        }*/
+
         for (int i = 0; i < Renderers.size(); ++i)
         {
-            Renderers.get(i).Render(matrixStack, tickDelta, client, x + i * iconSpacing, y, TextureWidth, TextureHeight);
+            int xOffset = i * iconSpacing;
+            Renderers.get(i).Render(matrixStack, tickDelta, client, xOffset, x, y, TextureWidth, TextureHeight);
         }
 
     }
 
     public interface PlayerStatusRenderer
     {
-        void Render(MatrixStack matrixStack, float tickDelta, MinecraftClient client, int x, int y, int textureWidth, int textureHeight);
+        void Render(MatrixStack matrixStack, float tickDelta, MinecraftClient client, int xOffset, int x, int y, int textureWidth, int textureHeight);
     }
 }

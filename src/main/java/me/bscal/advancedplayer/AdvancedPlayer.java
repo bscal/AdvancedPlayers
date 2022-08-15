@@ -23,9 +23,8 @@ public class AdvancedPlayer implements ModInitializer
     public static final String MOD_ID = "advancedplayer";
     public static final Logger LOGGER = (Logger) LogManager.getLogger("AdvancedPlayer");
     public static Gson Gson;
-
-    private static boolean SeasonsEnabled;
     public static APPlayerManager APPlayerManager;
+    private static boolean SeasonsEnabled;
 
     @Override
     public void onInitialize()

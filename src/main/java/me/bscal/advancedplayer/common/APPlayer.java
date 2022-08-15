@@ -48,7 +48,7 @@ public class APPlayer implements Serializable
     public float OutsideTemp;
     public float Insulation;
     public float WindResistance;
-    public TemperatureBody.TemperatureShiftType ShiftType;
+    public TemperatureBody.TemperatureShiftType ShiftType = TemperatureBody.TemperatureShiftType.Normal;
 
     private transient int m_LastSyncedTick;
 
@@ -118,15 +118,59 @@ public class APPlayer implements Serializable
     {
         if (Player.world == null || Player.world.isClient || Player.isDisconnected()) return;
         m_LastSyncedTick = Player.world.getServer().getTicks();
-        byte[] data = Serialize(this);
-        assert data.length < 256 : "APPlayer data array is large, is this intended?";
-        var buffer = PooledByteBufAllocator.DEFAULT.directBuffer(data.length, 256);
-
-        PacketByteBuf buf = new PacketByteBuf(buffer);
-        buf.writeByteArray(data);
-        AdvancedPlayer.LOGGER.info(String.format("Syncing(%s) Buf Cap: %d, Buf MaxCap: %d", Player.getDisplayName().toString(), buf.capacity(), buf.maxCapacity()));
+        PacketByteBuf buf = new PacketByteBuf(
+                PooledByteBufAllocator.DEFAULT.directBuffer(128, 1024));
+        Serialize(buf);
+        AdvancedPlayer.LOGGER.info(
+                String.format("Syncing(%s) WrittenBytes: %d, Buf Cap: %d, Buf MaxCap: %d",
+                        Player.getDisplayName().getString(),
+                        buf.getWrittenBytes().length,
+                        buf.capacity(),
+                        buf.maxCapacity()));
         ServerPlayNetworking.send(Player, SYNC_PACKET, buf);
-        buf.release();
+    }
+
+
+    public void Serialize(PacketByteBuf buffer)
+    {
+        buffer.writeVarInt(BleedTicks);
+        buffer.writeVarInt(HeavyBleedTicks);
+        buffer.writeVarInt(LeftLegFracturedTicks);
+        buffer.writeVarInt(RightLegFracturedTicks);
+        buffer.writeBoolean(LeftLegSplinted);
+        buffer.writeBoolean(RightLegSplinted);
+        buffer.writeVarInt(Thirst);
+        buffer.writeVarInt(Hunger);
+        buffer.writeVarInt(Wetness);
+        buffer.writeFloat(CoreBodyTemperature);
+        buffer.writeFloat(Work);
+        buffer.writeFloat(HeatLossRate);
+        buffer.writeFloat(Delta);
+        buffer.writeFloat(OutsideTemp);
+        buffer.writeFloat(Insulation);
+        buffer.writeFloat(WindResistance);
+        buffer.writeEnumConstant(ShiftType);
+    }
+
+    public void Deserialize(PacketByteBuf buffer)
+    {
+        BleedTicks = buffer.readVarInt();
+        HeavyBleedTicks = buffer.readVarInt();
+        LeftLegFracturedTicks = buffer.readVarInt();
+        RightLegFracturedTicks = buffer.readVarInt();
+        LeftLegSplinted = buffer.readBoolean();
+        RightLegSplinted = buffer.readBoolean();
+        Thirst = buffer.readVarInt();
+        Hunger = buffer.readVarInt();
+        Wetness = buffer.readVarInt();
+        CoreBodyTemperature = buffer.readFloat();
+        Work = buffer.readFloat();
+        HeatLossRate = buffer.readFloat();
+        Delta = buffer.readFloat();
+        OutsideTemp = buffer.readFloat();
+        Insulation = buffer.readFloat();
+        WindResistance = buffer.readFloat();
+        ShiftType = buffer.readEnumConstant(TemperatureBody.TemperatureShiftType.class);
     }
 
     public static byte[] Serialize(APPlayer player)
