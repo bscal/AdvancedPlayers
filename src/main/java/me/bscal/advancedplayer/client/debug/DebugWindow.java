@@ -1,9 +1,7 @@
 package me.bscal.advancedplayer.client.debug;
 
 import com.google.common.base.Strings;
-import me.bscal.advancedplayer.AdvancedPlayer;
 import me.bscal.advancedplayer.client.AdvancedPlayerClient;
-import me.bscal.advancedplayer.common.mechanics.temperature.TemperatureBiomeRegistry;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
@@ -40,22 +38,36 @@ public class DebugWindow implements HudRenderCallback
 
     private void RenderTextTopLeft(TextRenderer textRenderer, MatrixStack matrixStack)
     {
-        LeftDebugTxt.clear();
-
         var ap = AdvancedPlayerClient.ClientAPPlayer;
-        LeftDebugTxt.add("CoreBodyTemperature " + ap.CoreBodyTemperature);
-        LeftDebugTxt.add("Work " + ap.Work);
-        LeftDebugTxt.add("HeatLossRate " + ap.HeatLossRate);
-        LeftDebugTxt.add("Delta " + ap.Delta);
-        LeftDebugTxt.add("OutsideTemp " + ap.OutsideTemp);
-        LeftDebugTxt.add("WindResistance " + ap.WindResistance);
-        LeftDebugTxt.add("Insulation " + ap.Insulation);
-        LeftDebugTxt.add("ShiftType " + ap.ShiftType);
+
+        LeftDebugTxt.clear();
+        LeftDebugTxt.add("BleedTicks = " + ap.BleedTicks);
+        LeftDebugTxt.add("HeavyBleedTicks = " + ap.HeavyBleedTicks);
+        LeftDebugTxt.add("LeftLegFracturedTicks = " + ap.LeftLegFracturedTicks);
+        LeftDebugTxt.add("RightLegFracturedTicks = " + ap.RightLegFracturedTicks);
+        LeftDebugTxt.add("LeftLegSplinted = " + ap.LeftLegSplinted);
+        LeftDebugTxt.add("RightLegSplinted = " + ap.RightLegSplinted);
+        LeftDebugTxt.add("Thirst = " + ap.Thirst);
+        LeftDebugTxt.add("Hunger = " + ap.Hunger);
+        LeftDebugTxt.add("Wetness = " + ap.Wetness);
+        LeftDebugTxt.add("BodyTemperature = " + ap.BodyTemperature);
+        LeftDebugTxt.add("CoreBodyTemperature = " + ap.CoreBodyTemperature);
+        LeftDebugTxt.add("Work = " + ap.Work);
+        LeftDebugTxt.add("HeatLossRate = " + ap.HeatLossRate);
+        LeftDebugTxt.add("Delta = " + ap.Delta);
+        LeftDebugTxt.add("OutsideTemp = " + ap.OutsideTemp);
+        LeftDebugTxt.add("Insulation = " + ap.Insulation);
+        LeftDebugTxt.add("WindResistance = " + ap.WindResistance);
+        LeftDebugTxt.add("ShiftType = " + ap.ShiftType);
+        LeftDebugTxt.add("AirTemperature = " + ap.AirTemperature);
+        LeftDebugTxt.add("YTemperature = " + ap.YTemperature);
+        LeftDebugTxt.add("LightTemperature = " + ap.LightTemperature);
+        LeftDebugTxt.add("Humidity = " + ap.Humidity);
+        LeftDebugTxt.add("Wind = " + ap.Wind);
 
         for (int i = 0; i < LeftDebugTxt.size(); ++i)
         {
             String string = LeftDebugTxt.get(i);
-            if (Strings.isNullOrEmpty(string)) continue;
             int j = textRenderer.fontHeight;
             int k = textRenderer.getWidth(string);
             int m = 2 + j * i;

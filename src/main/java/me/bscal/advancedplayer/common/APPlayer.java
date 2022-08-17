@@ -6,6 +6,8 @@ import me.bscal.advancedplayer.common.mechanics.temperature.BiomeClimate;
 import me.bscal.advancedplayer.common.mechanics.temperature.TemperatureBiomeRegistry;
 import me.bscal.advancedplayer.common.mechanics.temperature.TemperatureBody;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.player.PlayerEntity;
@@ -19,7 +21,6 @@ import net.minecraft.util.math.random.Random;
 import net.minecraft.util.registry.RegistryEntry;
 import net.minecraft.world.LightType;
 import net.minecraft.world.biome.Biome;
-import org.apache.commons.lang3.SerializationUtils;
 
 import java.io.Serializable;
 
@@ -41,6 +42,7 @@ public class APPlayer implements Serializable
     public int Thirst;
     public int Hunger;
     public int Wetness;
+    public float BodyTemperature;
     public float CoreBodyTemperature = TemperatureBody.NORMAL;
     public float Work;
     public float HeatLossRate;
@@ -48,15 +50,23 @@ public class APPlayer implements Serializable
     public float OutsideTemp;
     public float Insulation;
     public float WindResistance;
+    public float AirTemperature;
+    public float YTemperature;
+    public float LightTemperature;
+    public float Humidity;
+    public float Wind;
     public TemperatureBody.TemperatureShiftType ShiftType = TemperatureBody.TemperatureShiftType.Normal;
 
     private transient int m_LastSyncedTick;
 
-    public APPlayer(PlayerEntity player)
+    public APPlayer(MinecraftClient client)
     {
-        assert !player.world.isClient : "player cannot be null on server";
-        if (player instanceof ServerPlayerEntity serverPlayerEntity)
-            Player = serverPlayerEntity;
+        Player = null;
+    }
+
+    public APPlayer(ServerPlayerEntity serverPlayerEntity)
+    {
+        Player = serverPlayerEntity;
     }
 
     public void Update(MinecraftServer server)
@@ -66,13 +76,15 @@ public class APPlayer implements Serializable
         Thirst -= 0.01f;
         Hunger -= 0.0025f;
 
-        if (BleedTicks-- > 0)
+        if (BleedTicks > 0)
         {
+            --BleedTicks;
             Player.damage(DamageSource.GENERIC, 0.05f);
         }
 
-        if (HeavyBleedTicks-- > 0 && HeavyBleedTicks % 20 == 0)
+        if (HeavyBleedTicks > 0 && HeavyBleedTicks % 20 == 0)
         {
+            --HeavyBleedTicks;
             Player.damage(DamageSource.GENERIC, 2.5f);
         }
 
@@ -130,6 +142,7 @@ public class APPlayer implements Serializable
         ServerPlayNetworking.send(Player, SYNC_PACKET, buf);
     }
 
+    // TODO handle a serialization to/from file so handle updated variables
 
     public void Serialize(PacketByteBuf buffer)
     {
@@ -142,6 +155,7 @@ public class APPlayer implements Serializable
         buffer.writeVarInt(Thirst);
         buffer.writeVarInt(Hunger);
         buffer.writeVarInt(Wetness);
+        buffer.writeFloat(BodyTemperature);
         buffer.writeFloat(CoreBodyTemperature);
         buffer.writeFloat(Work);
         buffer.writeFloat(HeatLossRate);
@@ -149,6 +163,11 @@ public class APPlayer implements Serializable
         buffer.writeFloat(OutsideTemp);
         buffer.writeFloat(Insulation);
         buffer.writeFloat(WindResistance);
+        buffer.writeFloat(AirTemperature);
+        buffer.writeFloat(YTemperature);
+        buffer.writeFloat(LightTemperature);
+        buffer.writeFloat(Humidity);
+        buffer.writeFloat(Wind);
         buffer.writeEnumConstant(ShiftType);
     }
 
@@ -163,6 +182,7 @@ public class APPlayer implements Serializable
         Thirst = buffer.readVarInt();
         Hunger = buffer.readVarInt();
         Wetness = buffer.readVarInt();
+        BodyTemperature = buffer.readFloat();
         CoreBodyTemperature = buffer.readFloat();
         Work = buffer.readFloat();
         HeatLossRate = buffer.readFloat();
@@ -170,65 +190,49 @@ public class APPlayer implements Serializable
         OutsideTemp = buffer.readFloat();
         Insulation = buffer.readFloat();
         WindResistance = buffer.readFloat();
+        AirTemperature = buffer.readFloat();
+        YTemperature = buffer.readFloat();
+        LightTemperature = buffer.readFloat();
+        Humidity = buffer.readFloat();
+        Wind = buffer.readFloat();
         ShiftType = buffer.readEnumConstant(TemperatureBody.TemperatureShiftType.class);
     }
-
-    public static byte[] Serialize(APPlayer player)
-    {
-        // NOTE if this gets to large we can manually compress fields
-        return SerializationUtils.serialize(player);
-    }
-
-    public static APPlayer Deserialize(ServerPlayerEntity player, byte[] data)
-    {
-        APPlayer apPlayer = SerializationUtils.deserialize(data);
-        apPlayer.Player = player;
-        return apPlayer;
-    }
-
 
     public static boolean Chance(float chance)
     {
         return RANDOM.nextFloat() < chance;
     }
 
-    protected void ProcessTemperature(MinecraftServer server)
+    private void ProcessTemperature(MinecraftServer server)
     {
         BlockPos pos = Player.getBlockPos();
         RegistryEntry<Biome> biome = Player.world.getBiome(pos);
         BiomeClimate climate = TemperatureBiomeRegistry.Get(biome.value());
-        float airTemperature = climate.GetCurrentTemperature();
-        float yTemperature = GetYTemperature(pos);
-        float lightTemperature = GetLightTemperature(Player.world.getLightLevel(LightType.SKY, pos));
-        float humidity = 0.5f;
-        float wind = 3f;
+        AirTemperature = 41.0f;
+        YTemperature = GetYTemperature(pos);
+        LightTemperature = GetLightTemperature(Player.world.getLightLevel(LightType.SKY, pos));
+        Humidity = 0.5f;
+        Wind = 3f;
 
         //TODO
         //TemperatureClothing.ClothingData clothingData = GetProviderClothingData(Player);
         //Insulation = clothingData.Insulation;
         //WindResistance = clothingData.WindResistance;
 
-        float m_BaseWork = 1.0f; // Players body always doing some work.
-        float bodyTemp = CoreBodyTemperature + Work + m_BaseWork;
-
-        OutsideTemp = airTemperature + yTemperature + lightTemperature - (wind - WindResistance);
-        float diff = bodyTemp - OutsideTemp;
+        float baseBodyTemp = TemperatureBody.NORMAL;
+        float baseWork = 0.0f; // Players body always doing some work.
+        float currentWork = MathHelper.clamp(Work + baseWork, 0f, 10f);
+        CoreBodyTemperature = BodyTemperature + currentWork;
+        OutsideTemp = AirTemperature + YTemperature + LightTemperature - (Wind - WindResistance);
         ShiftType = TemperatureBody.TemperatureShiftType.TypeForTemp(OutsideTemp);
-
-        // 100% insulation would mean you lose 0 heat, 0% you lose all the heat;
-        HeatLossRate = MathHelper.lerp(Insulation, diff / 200, .0f);
-        // Since Work is temporary
-        Work = MathHelper.clamp(Work - HeatLossRate, 0, 10f);
-        // Body moving towards the outside temperature. Not an expert at thermodynamics but this seems like a
-        // decent system even though not 100% accurate
-        CoreBodyTemperature = MathHelper.clamp(CoreBodyTemperature, TemperatureBody.MIN_COLD, TemperatureBody.MAX_HOT);
-        CoreBodyTemperature = MathHelper.lerp(HeatLossRate, CoreBodyTemperature, OutsideTemp);
-        // 100% would not allow evaporation to take place. This does not matter if it is cold.
-        Delta = TemperatureBody.TemperatureShiftType.IsWarming(ShiftType) ? MathHelper.lerp(humidity, .1f, .0f) : .1f;
-        CoreBodyTemperature = MathHelper.lerp(Delta, CoreBodyTemperature, TemperatureBody.NORMAL);
+        HeatLossRate = 0.05f; // TODO change
+        Delta = 0.01f;
+        BodyTemperature = MathHelper.lerp(Delta, BodyTemperature, baseBodyTemp);
+        BodyTemperature = MathHelper.lerp(HeatLossRate, BodyTemperature, OutsideTemp);
+        BodyTemperature = MathHelper.clamp(BodyTemperature, TemperatureBody.MIN_COLD, TemperatureBody.MAX_HOT);
     }
 
-    public static float GetYTemperature(BlockPos pos)
+    private static float GetYTemperature(BlockPos pos)
     {
         float y = pos.getY();
         if (y <= -32)
@@ -247,7 +251,7 @@ public class APPlayer implements Serializable
         return 0f;
     }
 
-    public static float GetLightTemperature(int lightLevel)
+    private static float GetLightTemperature(int lightLevel)
     {
         return MathHelper.lerp(lightLevel / 15f, -4.5f, 4.5f);
     }
