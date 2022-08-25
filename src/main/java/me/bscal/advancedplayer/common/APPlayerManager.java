@@ -8,6 +8,7 @@ import net.minecraft.network.PacketByteBuf;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.WorldSavePath;
+import org.apache.commons.lang3.SerializationUtils;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -55,18 +56,15 @@ public class APPlayerManager
     {
         APPlayer result = UUIDToPlayerMap.get(serverPlayerEntity.getUuid());
         if (result != null) return result;
-
         File file = new File(SavePath, serverPlayerEntity.getUuid() + SAVE_EXTENSION);
         if (file.exists())
         {
             try
             {
                 FileInputStream fis = new FileInputStream(file);
-                byte[] data = fis.readAllBytes();
-                PacketByteBuf buf = new PacketByteBuf(Unpooled.wrappedBuffer(data));
-                result = new APPlayer(serverPlayerEntity);
-                result.Deserialize(buf);
-                fis.close();
+                result = SerializationUtils.deserialize(fis);
+                result.Player = serverPlayerEntity;
+                // this should auto close
             } catch (IOException e)
             {
                 AdvancedPlayer.LOGGER.error("Could not load player");
@@ -75,8 +73,8 @@ public class APPlayerManager
         }
         if (result == null)
             result = new APPlayer(serverPlayerEntity);
-        result.Sync();
         AddAPPlayer(serverPlayerEntity, result);
+        result.Sync(System.currentTimeMillis());
         return result;
     }
 
@@ -87,14 +85,11 @@ public class APPlayerManager
         {
             File file = new File(SavePath, serverPlayerEntity.getUuid() + SAVE_EXTENSION);
             file.getParentFile().mkdirs();
-            PacketByteBuf buf = new PacketByteBuf(
-                    PooledByteBufAllocator.DEFAULT.directBuffer(128, 1024));
-            player.Serialize(buf);
             try
             {
                 FileOutputStream fos = new FileOutputStream(file);
-                fos.write(buf.getWrittenBytes());
-                fos.close();
+                SerializationUtils.serialize(player, fos);
+                // this should auto close
             } catch (IOException e)
             {
                 AdvancedPlayer.LOGGER.error("Could not save player");

@@ -5,12 +5,12 @@ import me.bscal.advancedplayer.AdvancedPlayer;
 import me.bscal.advancedplayer.common.mechanics.temperature.BiomeClimate;
 import me.bscal.advancedplayer.common.mechanics.temperature.TemperatureBiomeRegistry;
 import me.bscal.advancedplayer.common.mechanics.temperature.TemperatureBody;
+import me.bscal.seasons.common.seasons.SeasonClimateManager;
+import me.bscal.seasons.common.seasons.SeasonTypes;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.effect.StatusEffects;
-import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -21,7 +21,11 @@ import net.minecraft.util.math.random.Random;
 import net.minecraft.util.registry.RegistryEntry;
 import net.minecraft.world.LightType;
 import net.minecraft.world.biome.Biome;
+import org.apache.commons.lang3.SerializationUtils;
 
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.Serializable;
 
 public class APPlayer implements Serializable
@@ -29,6 +33,9 @@ public class APPlayer implements Serializable
 
     public static final Identifier SYNC_PACKET = new Identifier(AdvancedPlayer.MOD_ID, "applayer_sync");
     public static final Random RANDOM = Random.create();
+
+    private static final int TICKRATE_SYNC_PLAYER = 1000 * 5;
+    private static final int TICKRATE_TEMPERATURE = 20;
 
     public transient ServerPlayerEntity Player;
 
@@ -57,7 +64,8 @@ public class APPlayer implements Serializable
     public float Wind;
     public TemperatureBody.TemperatureShiftType ShiftType = TemperatureBody.TemperatureShiftType.Normal;
 
-    private transient int m_LastSyncedTick;
+    private transient long m_LastSyncTime;
+    private transient int m_TemperatureUpdateCounter;
 
     public APPlayer(MinecraftClient client)
     {
@@ -120,31 +128,97 @@ public class APPlayer implements Serializable
 
         Wetness = MathHelper.clamp(Wetness + (Player.isSubmergedInWater() ? -1 : 1), 0, 100);
 
-        ProcessTemperature(server);
+        if (m_TemperatureUpdateCounter-- < 1)
+        {
+            m_TemperatureUpdateCounter = TICKRATE_TEMPERATURE;
+            ProcessTemperature(server);
+        }
 
-        int tickDifference = server.getTicks() - m_LastSyncedTick;
-        if (tickDifference > 20 * 5) Sync();
+        long systemTime = System.currentTimeMillis();
+        if (systemTime - m_LastSyncTime > TICKRATE_SYNC_PLAYER)
+        {
+            Sync(systemTime);
+        }
     }
 
-    public void Sync()
+    public void Sync(long systemMilliTime)
     {
-        if (Player.world == null || Player.world.isClient || Player.isDisconnected()) return;
-        m_LastSyncedTick = Player.world.getServer().getTicks();
+        m_LastSyncTime = systemMilliTime;
         PacketByteBuf buf = new PacketByteBuf(
-                PooledByteBufAllocator.DEFAULT.directBuffer(128, 1024));
+                PooledByteBufAllocator.DEFAULT.directBuffer(
+                        128,
+                        1024));
         Serialize(buf);
+        ServerPlayNetworking.send(Player, SYNC_PACKET, buf);
+
         AdvancedPlayer.LOGGER.info(
                 String.format("Syncing(%s) WrittenBytes: %d, Buf Cap: %d, Buf MaxCap: %d",
                         Player.getDisplayName().getString(),
                         buf.getWrittenBytes().length,
                         buf.capacity(),
                         buf.maxCapacity()));
-        ServerPlayNetworking.send(Player, SYNC_PACKET, buf);
     }
 
-    // TODO handle a serialization to/from file so handle updated variables
+    private static boolean Chance(float chance)
+    {
+        return RANDOM.nextFloat() < chance;
+    }
 
-    public void Serialize(PacketByteBuf buffer)
+    private void ProcessTemperature(MinecraftServer server)
+    {
+        BlockPos pos = Player.getBlockPos();
+        RegistryEntry<Biome> biome = Player.world.getBiome(pos);
+        SeasonTypes climate = SeasonClimateManager.getSeasonType(biome.value());
+        AirTemperature = climate.SeasonStats.Temperature;
+        YTemperature = GetYTemperature(pos);
+        LightTemperature = GetLightTemperature(Player.world.getLightLevel(LightType.SKY, pos));
+        Humidity = 0.5f;
+        Wind = 3f;
+
+        //TODO
+        //TemperatureClothing.ClothingData clothingData = GetProviderClothingData(Player);
+        //Insulation = clothingData.Insulation;
+        //WindResistance = clothingData.WindResistance;
+
+        float baseBodyTemp = TemperatureBody.NORMAL;
+        float baseWork = 0.0f; // Players body always doing some work.
+        float currentWork = MathHelper.clamp(Work + baseWork, 0f, 10f);
+        CoreBodyTemperature = BodyTemperature + currentWork;
+        OutsideTemp = AirTemperature + YTemperature + LightTemperature - (Wind - WindResistance);
+        ShiftType = TemperatureBody.TemperatureShiftType.TypeForTemp(OutsideTemp);
+        // Change per sec
+        HeatLossRate = 0.01f; // TODO change
+        Delta = 0.005f;
+        BodyTemperature = MathHelper.lerp(HeatLossRate, BodyTemperature, OutsideTemp);
+        BodyTemperature = MathHelper.lerp(Delta, BodyTemperature, baseBodyTemp);
+        BodyTemperature = MathHelper.clamp(BodyTemperature, TemperatureBody.MIN_COLD, TemperatureBody.MAX_HOT);
+    }
+
+    private static float GetYTemperature(BlockPos pos)
+    {
+        float y = pos.getY();
+        if (y <= -32)
+        {
+            // 15-31C
+            return ((-y) - 32) * 0.5f;
+        }
+        if (y >= 128)
+        {
+            // 320 max height = -57.6 | 41.6
+            // 256 max gen h = -38.4 | -23.4
+            // 128 start h = 0 | 15
+            // Usually base temp is 15;
+            return -((y - 128) * .3f);
+        }
+        return 0f;
+    }
+
+    private static float GetLightTemperature(int lightLevel)
+    {
+        return MathHelper.lerp(lightLevel / 15f, -4.5f, 4.5f);
+    }
+
+    private void Serialize(PacketByteBuf buffer)
     {
         buffer.writeVarInt(BleedTicks);
         buffer.writeVarInt(HeavyBleedTicks);
@@ -197,64 +271,5 @@ public class APPlayer implements Serializable
         Wind = buffer.readFloat();
         ShiftType = buffer.readEnumConstant(TemperatureBody.TemperatureShiftType.class);
     }
-
-    public static boolean Chance(float chance)
-    {
-        return RANDOM.nextFloat() < chance;
-    }
-
-    private void ProcessTemperature(MinecraftServer server)
-    {
-        BlockPos pos = Player.getBlockPos();
-        RegistryEntry<Biome> biome = Player.world.getBiome(pos);
-        BiomeClimate climate = TemperatureBiomeRegistry.Get(biome.value());
-        AirTemperature = 41.0f;
-        YTemperature = GetYTemperature(pos);
-        LightTemperature = GetLightTemperature(Player.world.getLightLevel(LightType.SKY, pos));
-        Humidity = 0.5f;
-        Wind = 3f;
-
-        //TODO
-        //TemperatureClothing.ClothingData clothingData = GetProviderClothingData(Player);
-        //Insulation = clothingData.Insulation;
-        //WindResistance = clothingData.WindResistance;
-
-        float baseBodyTemp = TemperatureBody.NORMAL;
-        float baseWork = 0.0f; // Players body always doing some work.
-        float currentWork = MathHelper.clamp(Work + baseWork, 0f, 10f);
-        CoreBodyTemperature = BodyTemperature + currentWork;
-        OutsideTemp = AirTemperature + YTemperature + LightTemperature - (Wind - WindResistance);
-        ShiftType = TemperatureBody.TemperatureShiftType.TypeForTemp(OutsideTemp);
-        HeatLossRate = 0.05f; // TODO change
-        Delta = 0.01f;
-        BodyTemperature = MathHelper.lerp(Delta, BodyTemperature, baseBodyTemp);
-        BodyTemperature = MathHelper.lerp(HeatLossRate, BodyTemperature, OutsideTemp);
-        BodyTemperature = MathHelper.clamp(BodyTemperature, TemperatureBody.MIN_COLD, TemperatureBody.MAX_HOT);
-    }
-
-    private static float GetYTemperature(BlockPos pos)
-    {
-        float y = pos.getY();
-        if (y <= -32)
-        {
-            // 15-31C
-            return ((-y) - 32) * 0.5f;
-        }
-        if (y >= 128)
-        {
-            // 320 max height = -57.6 | 41.6
-            // 256 max gen h = -38.4 | -23.4
-            // 128 start h = 0 | 15
-            // Usually base temp is 15;
-            return -((y - 128) * .3f);
-        }
-        return 0f;
-    }
-
-    private static float GetLightTemperature(int lightLevel)
-    {
-        return MathHelper.lerp(lightLevel / 15f, -4.5f, 4.5f);
-    }
-
 
 }

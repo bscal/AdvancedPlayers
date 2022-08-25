@@ -33,7 +33,7 @@ dependencies {
 
     //modImplementation("com.github.bscal:MCSeasons:v1.1.1")
     // Used to dev environment so i don't need to download the mod
-    // include("com.github.bscal:MCSeasons:${project.mcseasons_version}")
+    modImplementation include("com.github.bscal:MCSeasons:${project.mcseasons_version}")
     modImplementation include("io.github.cottonmc:LibGui:${project.libgui_version}")
     modImplementation include("software.bernie.geckolib:geckolib-fabric-1.19:3.1.12")
 }
