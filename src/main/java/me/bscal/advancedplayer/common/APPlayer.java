@@ -2,9 +2,6 @@ package me.bscal.advancedplayer.common;
 
 import io.netty.buffer.PooledByteBufAllocator;
 import me.bscal.advancedplayer.AdvancedPlayer;
-import me.bscal.advancedplayer.common.mechanics.temperature.BiomeClimate;
-import me.bscal.advancedplayer.common.mechanics.temperature.TemperatureBiomeRegistry;
-import me.bscal.advancedplayer.common.mechanics.temperature.TemperatureBody;
 import me.bscal.seasons.common.seasons.SeasonClimateManager;
 import me.bscal.seasons.common.seasons.SeasonTypes;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
@@ -19,13 +16,8 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.random.Random;
 import net.minecraft.util.registry.RegistryEntry;
-import net.minecraft.world.LightType;
 import net.minecraft.world.biome.Biome;
-import org.apache.commons.lang3.SerializationUtils;
 
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.Serializable;
 
 public class APPlayer implements Serializable
@@ -49,20 +41,11 @@ public class APPlayer implements Serializable
     public int Thirst;
     public int Hunger;
     public int Wetness;
-    public float BodyTemperature;
-    public float CoreBodyTemperature = TemperatureBody.NORMAL;
-    public float Work;
-    public float HeatLossRate;
-    public float Delta;
-    public float OutsideTemp;
-    public float Insulation;
-    public float WindResistance;
-    public float AirTemperature;
-    public float YTemperature;
-    public float LightTemperature;
-    public float Humidity;
-    public float Wind;
-    public TemperatureBody.TemperatureShiftType ShiftType = TemperatureBody.TemperatureShiftType.Normal;
+
+    public int BodyTemperature;
+    public int OutsideTemperature;
+    public int HeightTemperature;
+    public float TempDelta;
 
     private transient long m_LastSyncTime;
     private transient int m_TemperatureUpdateCounter;
@@ -131,7 +114,7 @@ public class APPlayer implements Serializable
         if (m_TemperatureUpdateCounter-- < 1)
         {
             m_TemperatureUpdateCounter = TICKRATE_TEMPERATURE;
-            ProcessTemperature(server);
+            ProcessTemperature(Player.getBlockPos());
         }
 
         long systemTime = System.currentTimeMillis();
@@ -164,53 +147,29 @@ public class APPlayer implements Serializable
         return RANDOM.nextFloat() < chance;
     }
 
-    private void ProcessTemperature(MinecraftServer server)
+    private void ProcessTemperature(BlockPos pos)
     {
-        BlockPos pos = Player.getBlockPos();
         RegistryEntry<Biome> biome = Player.world.getBiome(pos);
         SeasonTypes climate = SeasonClimateManager.getSeasonType(biome.value());
-        AirTemperature = climate.SeasonStats.Temperature;
-        YTemperature = GetYTemperature(pos);
-        LightTemperature = GetLightTemperature(Player.world.getLightLevel(LightType.SKY, pos));
-        Humidity = 0.5f;
-        Wind = 3f;
+        OutsideTemperature = 1;
+        HeightTemperature = GetYTemperature(pos);
 
-        //TODO
-        //TemperatureClothing.ClothingData clothingData = GetProviderClothingData(Player);
-        //Insulation = clothingData.Insulation;
-        //WindResistance = clothingData.WindResistance;
-
-        float baseBodyTemp = TemperatureBody.NORMAL;
-        float baseWork = 0.0f; // Players body always doing some work.
-        float currentWork = MathHelper.clamp(Work + baseWork, 0f, 10f);
-        CoreBodyTemperature = BodyTemperature + currentWork;
-        OutsideTemp = AirTemperature + YTemperature + LightTemperature - (Wind - WindResistance);
-        ShiftType = TemperatureBody.TemperatureShiftType.TypeForTemp(OutsideTemp);
-        // Change per sec
-        HeatLossRate = 0.01f; // TODO change
-        Delta = 0.005f;
-        BodyTemperature = MathHelper.lerp(HeatLossRate, BodyTemperature, OutsideTemp);
-        BodyTemperature = MathHelper.lerp(Delta, BodyTemperature, baseBodyTemp);
-        BodyTemperature = MathHelper.clamp(BodyTemperature, TemperatureBody.MIN_COLD, TemperatureBody.MAX_HOT);
+        int finalTemp = OutsideTemperature + HeightTemperature;
+        BodyTemperature = (int) MathHelper.lerp(TempDelta, BodyTemperature, finalTemp);
     }
 
-    private static float GetYTemperature(BlockPos pos)
+    private static int GetYTemperature(BlockPos pos)
     {
         float y = pos.getY();
-        if (y <= -32)
-        {
-            // 15-31C
-            return ((-y) - 32) * 0.5f;
-        }
-        if (y >= 128)
-        {
-            // 320 max height = -57.6 | 41.6
-            // 256 max gen h = -38.4 | -23.4
-            // 128 start h = 0 | 15
-            // Usually base temp is 15;
-            return -((y - 128) * .3f);
-        }
-        return 0f;
+
+        int temp;
+        if (y >= 100.0f)
+            temp = (int) Math.floor((y - 100.0f) * .1f);
+        else if (y <= 0.0f)
+            temp = (int) Math.floor(Math.abs(y) * .1f);
+        else
+            temp = 0;
+        return temp;
     }
 
     private static float GetLightTemperature(int lightLevel)
@@ -229,20 +188,10 @@ public class APPlayer implements Serializable
         buffer.writeVarInt(Thirst);
         buffer.writeVarInt(Hunger);
         buffer.writeVarInt(Wetness);
-        buffer.writeFloat(BodyTemperature);
-        buffer.writeFloat(CoreBodyTemperature);
-        buffer.writeFloat(Work);
-        buffer.writeFloat(HeatLossRate);
-        buffer.writeFloat(Delta);
-        buffer.writeFloat(OutsideTemp);
-        buffer.writeFloat(Insulation);
-        buffer.writeFloat(WindResistance);
-        buffer.writeFloat(AirTemperature);
-        buffer.writeFloat(YTemperature);
-        buffer.writeFloat(LightTemperature);
-        buffer.writeFloat(Humidity);
-        buffer.writeFloat(Wind);
-        buffer.writeEnumConstant(ShiftType);
+        buffer.writeVarInt(BodyTemperature);
+        buffer.writeVarInt(OutsideTemperature);
+        buffer.writeVarInt(HeightTemperature);
+        buffer.writeFloat(TempDelta);
     }
 
     public void Deserialize(PacketByteBuf buffer)
@@ -256,20 +205,10 @@ public class APPlayer implements Serializable
         Thirst = buffer.readVarInt();
         Hunger = buffer.readVarInt();
         Wetness = buffer.readVarInt();
-        BodyTemperature = buffer.readFloat();
-        CoreBodyTemperature = buffer.readFloat();
-        Work = buffer.readFloat();
-        HeatLossRate = buffer.readFloat();
-        Delta = buffer.readFloat();
-        OutsideTemp = buffer.readFloat();
-        Insulation = buffer.readFloat();
-        WindResistance = buffer.readFloat();
-        AirTemperature = buffer.readFloat();
-        YTemperature = buffer.readFloat();
-        LightTemperature = buffer.readFloat();
-        Humidity = buffer.readFloat();
-        Wind = buffer.readFloat();
-        ShiftType = buffer.readEnumConstant(TemperatureBody.TemperatureShiftType.class);
+        BodyTemperature = buffer.readVarInt();
+        OutsideTemperature = buffer.readVarInt();
+        HeightTemperature = buffer.readVarInt();
+        TempDelta = buffer.readFloat();
     }
 
 }

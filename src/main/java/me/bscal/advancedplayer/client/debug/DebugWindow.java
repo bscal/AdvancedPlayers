@@ -51,19 +51,9 @@ public class DebugWindow implements HudRenderCallback
         LeftDebugTxt.add("Hunger = " + ap.Hunger);
         LeftDebugTxt.add("Wetness = " + ap.Wetness);
         LeftDebugTxt.add("BodyTemperature = " + ap.BodyTemperature);
-        LeftDebugTxt.add("CoreBodyTemperature = " + ap.CoreBodyTemperature);
-        LeftDebugTxt.add("Work = " + ap.Work);
-        LeftDebugTxt.add("HeatLossRate = " + ap.HeatLossRate);
-        LeftDebugTxt.add("Delta = " + ap.Delta);
-        LeftDebugTxt.add("OutsideTemp = " + ap.OutsideTemp);
-        LeftDebugTxt.add("Insulation = " + ap.Insulation);
-        LeftDebugTxt.add("WindResistance = " + ap.WindResistance);
-        LeftDebugTxt.add("ShiftType = " + ap.ShiftType);
-        LeftDebugTxt.add("AirTemperature = " + ap.AirTemperature);
-        LeftDebugTxt.add("YTemperature = " + ap.YTemperature);
-        LeftDebugTxt.add("LightTemperature = " + ap.LightTemperature);
-        LeftDebugTxt.add("Humidity = " + ap.Humidity);
-        LeftDebugTxt.add("Wind = " + ap.Wind);
+        LeftDebugTxt.add("OutsideTemperature = " + ap.OutsideTemperature);
+        LeftDebugTxt.add("HeightTemperature = " + ap.HeightTemperature);
+        LeftDebugTxt.add("TempDelta = " + ap.TempDelta);
 
         for (int i = 0; i < LeftDebugTxt.size(); ++i)
         {

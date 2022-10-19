@@ -35,15 +35,15 @@ public class TemperatureWindow implements PlayerStatusHud.PlayerStatusRenderer
         return AdvancedPlayerClient.TEXTURE_NORMAL;
     }
 
-    private void DrawChange(MatrixStack matrixStack, int x, int y, TemperatureBody.TemperatureShiftType shiftType)
+    private void DrawChange(MatrixStack matrixStack, int x, int y, int outsideTemperature)
     {
         Sprite sprite;
-        if (TemperatureBody.TemperatureShiftType.IsWarming(shiftType))
+        if (outsideTemperature > 0)
         {
             sprite = AdvancedPlayerClient.AtlasTexture.getSprite(AdvancedPlayerClient.TEXTURE_UP_CARROT);
             RenderSystem.setShaderColor(1, 0, 0, 1);
         }
-        else if (TemperatureBody.TemperatureShiftType.IsCooling(shiftType))
+        else if (outsideTemperature < 0)
         {
             sprite = AdvancedPlayerClient.AtlasTexture.getSprite(AdvancedPlayerClient.TEXTURE_DOWN_CARROT);
             RenderSystem.setShaderColor(0, 0, 1, 1);
@@ -58,7 +58,7 @@ public class TemperatureWindow implements PlayerStatusHud.PlayerStatusRenderer
         matrixStack.scale(.5f, .5f, 0);
         matrixStack.translate(-xx - .5f, -yy, 0);
         InGameHud.drawSprite(matrixStack, x, y, 0, 16, 16, sprite);
-        if (TemperatureBody.TemperatureShiftType.IsBigDifference(shiftType))
+        if (Math.abs(outsideTemperature) >= 5)
         {
             InGameHud.drawSprite(matrixStack, x, y - 6, 0, 16, 16, sprite);
         }
@@ -68,14 +68,14 @@ public class TemperatureWindow implements PlayerStatusHud.PlayerStatusRenderer
     @Override
     public void Render(MatrixStack matrixStack, float tickDelta, MinecraftClient client, int xOffset, int x, int y, int textureWidth, int textureHeight)
     {
-        var coreBodyTemperature = AdvancedPlayerClient.ClientAPPlayer.CoreBodyTemperature;
-        var shiftType = AdvancedPlayerClient.ClientAPPlayer.ShiftType;
+        var coreBodyTemperature = AdvancedPlayerClient.ClientAPPlayer.BodyTemperature;
+        var outsideTemperature = AdvancedPlayerClient.ClientAPPlayer.OutsideTemperature;
 
         int xx = xOffset + x + 5;
         InGameHud.drawSprite(matrixStack, xx, y, 0, 16, 32, Thermometer);
 
         var spriteId = SetTemperature(coreBodyTemperature);
         InGameHud.drawSprite(matrixStack, xx, y, 0, 16, 32, AdvancedPlayerClient.AtlasTexture.getSprite(spriteId));
-        DrawChange(matrixStack, xx, y, shiftType);
+        DrawChange(matrixStack, xx, y, outsideTemperature);
     }
 }
