@@ -1,6 +1,7 @@
 package me.bscal.advancedplayer.common;
 
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+import me.bscal.advancedplayer.AdvancedPlayer;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.registry.Registry;
@@ -37,6 +38,11 @@ public class BiomeTemperatures
     {
         var biome = world.getRegistryManager().get(Registry.BIOME_KEY).get(biomeId);
         if (biome == null) return;
+        if (temperatures.length != 4)
+        {
+            AdvancedPlayer.LOGGER.error("Registering biome climate... temperatures array must equal 4.");
+            return;
+        }
 
         Climate climate = new Climate();
         climate.Temperatures = temperatures;
