@@ -26,16 +26,16 @@ public class TemperatureWindow implements PlayerStatusHud.PlayerStatusRenderer
 
     private Identifier SetTemperature(float temperature)
     {
-        if (temperature <= TemperatureBody.FREEZING) return AdvancedPlayerClient.TEXTURE_FREEZING;
-        if (temperature <= TemperatureBody.COLD) return AdvancedPlayerClient.TEXTURE_COLD;
-        if (temperature <= TemperatureBody.CHILLY) return AdvancedPlayerClient.TEXTURE_COOL;
-        if (temperature >= TemperatureBody.EXTREMELY_HOT) return AdvancedPlayerClient.TEXTURE_BURNING;
-        if (temperature >= TemperatureBody.HOT) return AdvancedPlayerClient.TEXTURE_HOT;
-        if (temperature >= TemperatureBody.WARM) return AdvancedPlayerClient.TEXTURE_WARM;
+        if (temperature <= -15) return AdvancedPlayerClient.TEXTURE_FREEZING;
+        if (temperature <= -10) return AdvancedPlayerClient.TEXTURE_COLD;
+        if (temperature <= -5) return AdvancedPlayerClient.TEXTURE_COOL;
+        if (temperature >= 15) return AdvancedPlayerClient.TEXTURE_BURNING;
+        if (temperature >= 10) return AdvancedPlayerClient.TEXTURE_HOT;
+        if (temperature >= 5) return AdvancedPlayerClient.TEXTURE_WARM;
         return AdvancedPlayerClient.TEXTURE_NORMAL;
     }
 
-    private void DrawChange(MatrixStack matrixStack, int x, int y, int outsideTemperature)
+    private void DrawChange(MatrixStack matrixStack, int x, int y, float outsideTemperature)
     {
         Sprite sprite;
         if (outsideTemperature > 0)

@@ -2,8 +2,6 @@ package me.bscal.advancedplayer.common;
 
 import io.netty.buffer.PooledByteBufAllocator;
 import me.bscal.advancedplayer.AdvancedPlayer;
-import me.bscal.seasons.common.seasons.SeasonClimateManager;
-import me.bscal.seasons.common.seasons.SeasonTypes;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.damage.DamageSource;
@@ -26,6 +24,7 @@ public class APPlayer implements Serializable
     public static final Identifier SYNC_PACKET = new Identifier(AdvancedPlayer.MOD_ID, "applayer_sync");
     public static final Random RANDOM = Random.create();
 
+    private static final int APPLAYER_SIZE = 64;
     private static final int TICKRATE_SYNC_PLAYER = 1000 * 5;
     private static final int TICKRATE_TEMPERATURE = 20;
 
@@ -40,15 +39,16 @@ public class APPlayer implements Serializable
 
     public int Thirst;
     public int Hunger;
-    public int Wetness;
+    public float Wetness;
 
-    public int BodyTemperature;
-    public int OutsideTemperature;
-    public int HeightTemperature;
+    public float BodyTemperature;
+    public float OutsideTemperature;
+    public float BiomeTemperature;
+    public float HeightTemperature;
     public float TempDelta;
 
-    private transient long m_LastSyncTime;
-    private transient int m_TemperatureUpdateCounter;
+    private transient int m_SyncCounter;
+    private transient int m_SecondCounter;
 
     public APPlayer(MinecraftClient client)
     {
@@ -60,9 +60,10 @@ public class APPlayer implements Serializable
         Player = serverPlayerEntity;
     }
 
-    public void Update(MinecraftServer server)
+    public void Update(MinecraftServer server, int serverTickTime)
     {
-        boolean secondTick = server.getTicks() % 20 == 0;
+        boolean secondTick = m_SecondCounter++ == 20;
+        if (secondTick) m_SecondCounter = 0;
 
         Thirst -= 0.01f;
         Hunger -= 0.0025f;
@@ -109,30 +110,45 @@ public class APPlayer implements Serializable
             }
         }
 
-        Wetness = MathHelper.clamp(Wetness + (Player.isSubmergedInWater() ? -1 : 1), 0, 100);
 
-        if (m_TemperatureUpdateCounter-- < 1)
+        Wetness = ProcessWetness();
+
+        if (secondTick)
         {
-            m_TemperatureUpdateCounter = TICKRATE_TEMPERATURE;
             ProcessTemperature(Player.getBlockPos());
         }
 
-        long systemTime = System.currentTimeMillis();
-        if (systemTime - m_LastSyncTime > TICKRATE_SYNC_PLAYER)
+        if (m_SyncCounter++ == 20 * 3)
         {
-            Sync(systemTime);
+            Sync();
         }
     }
 
-    public void Sync(long systemMilliTime)
+    private float ProcessWetness()
     {
-        m_LastSyncTime = systemMilliTime;
+        return MathHelper.clamp(
+                Player.isSubmergedInWater() ? 15 : -.25f, 0f, 100f);
+    }
+
+    private void ProcessTemperature(BlockPos pos)
+    {
+        RegistryEntry<Biome> biome = Player.world.getBiome(pos);
+        BiomeTemperature = AdvancedPlayer.BiomeTemperatures.GetTemperature(biome.value());
+        HeightTemperature = AdvancedPlayer.BiomeTemperatures.CalculateTemperatureHeight(pos.getY());
+        OutsideTemperature = BiomeTemperature + HeightTemperature;
+        TempDelta = 0.1f;
+        BodyTemperature = MathHelper.lerp(TempDelta, BodyTemperature, OutsideTemperature);
+    }
+
+    public void Sync()
+    {
         PacketByteBuf buf = new PacketByteBuf(
                 PooledByteBufAllocator.DEFAULT.directBuffer(
-                        128,
+                        APPLAYER_SIZE,
                         1024));
         Serialize(buf);
         ServerPlayNetworking.send(Player, SYNC_PACKET, buf);
+        m_SyncCounter = 0;
 
         AdvancedPlayer.LOGGER.info(
                 String.format("Syncing(%s) WrittenBytes: %d, Buf Cap: %d, Buf MaxCap: %d",
@@ -140,41 +156,6 @@ public class APPlayer implements Serializable
                         buf.getWrittenBytes().length,
                         buf.capacity(),
                         buf.maxCapacity()));
-    }
-
-    private static boolean Chance(float chance)
-    {
-        return RANDOM.nextFloat() < chance;
-    }
-
-    private void ProcessTemperature(BlockPos pos)
-    {
-        RegistryEntry<Biome> biome = Player.world.getBiome(pos);
-        SeasonTypes climate = SeasonClimateManager.getSeasonType(biome.value());
-        OutsideTemperature = 1;
-        HeightTemperature = GetYTemperature(pos);
-
-        int finalTemp = OutsideTemperature + HeightTemperature;
-        BodyTemperature = (int) MathHelper.lerp(TempDelta, BodyTemperature, finalTemp);
-    }
-
-    private static int GetYTemperature(BlockPos pos)
-    {
-        float y = pos.getY();
-
-        int temp;
-        if (y >= 100.0f)
-            temp = (int) Math.floor((y - 100.0f) * .1f);
-        else if (y <= 0.0f)
-            temp = (int) Math.floor(Math.abs(y) * .1f);
-        else
-            temp = 0;
-        return temp;
-    }
-
-    private static float GetLightTemperature(int lightLevel)
-    {
-        return MathHelper.lerp(lightLevel / 15f, -4.5f, 4.5f);
     }
 
     private void Serialize(PacketByteBuf buffer)
@@ -187,10 +168,11 @@ public class APPlayer implements Serializable
         buffer.writeBoolean(RightLegSplinted);
         buffer.writeVarInt(Thirst);
         buffer.writeVarInt(Hunger);
-        buffer.writeVarInt(Wetness);
-        buffer.writeVarInt(BodyTemperature);
-        buffer.writeVarInt(OutsideTemperature);
-        buffer.writeVarInt(HeightTemperature);
+        buffer.writeFloat(Wetness);
+        buffer.writeFloat(BodyTemperature);
+        buffer.writeFloat(OutsideTemperature);
+        buffer.writeFloat(BiomeTemperature);
+        buffer.writeFloat(HeightTemperature);
         buffer.writeFloat(TempDelta);
     }
 
@@ -204,11 +186,17 @@ public class APPlayer implements Serializable
         RightLegSplinted = buffer.readBoolean();
         Thirst = buffer.readVarInt();
         Hunger = buffer.readVarInt();
-        Wetness = buffer.readVarInt();
-        BodyTemperature = buffer.readVarInt();
-        OutsideTemperature = buffer.readVarInt();
-        HeightTemperature = buffer.readVarInt();
+        Wetness = buffer.readFloat();
+        BodyTemperature = buffer.readFloat();
+        OutsideTemperature = buffer.readFloat();
+        BiomeTemperature = buffer.readFloat();
+        HeightTemperature = buffer.readFloat();
         TempDelta = buffer.readFloat();
+    }
+
+    private static boolean Chance(float chance)
+    {
+        return RANDOM.nextFloat() < chance;
     }
 
 }

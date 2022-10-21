@@ -2,6 +2,7 @@ package me.bscal.advancedplayer.common;
 
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import me.bscal.advancedplayer.AdvancedPlayer;
+import me.bscal.seasons.api.SeasonAPI;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.registry.Registry;
@@ -11,22 +12,46 @@ import net.minecraft.world.biome.BiomeKeys;
 public class BiomeTemperatures
 {
 
-    public static final int[] TEMPERATURE_DEFAULT = {0, 0, 0, 0};
-    public static final int[] TEMPERATURE_COLD = {-5, -5, -5, -5};
-    public static final int[] TEMPERATURE_HOT = {5, 5, 5, 5};
-    public static final int[] TEMPERATURE_NETHER = {10, 10, 10, 10};
+    public static final float[] TEMPERATURE_DEFAULT = {0, 0, 0, 0};
+    public static final float[] TEMPERATURE_COLD = {-5, -5, -5, -5};
+    public static final float[] TEMPERATURE_HOT = {5, 5, 5, 5};
+    public static final float[] TEMPERATURE_NETHER = {10, 10, 10, 10};
 
-    Object2ObjectOpenHashMap<Biome, Climate> Biome2Climate;
+    public Object2ObjectOpenHashMap<Biome, Climate> Biome2Climate;
+
+    public float MaxHeight = 100.0f;
+    public float MinHeight = 0.0f;
+    public float HeightModifier = 0.1f;
 
     public BiomeTemperatures()
     {
         Biome2Climate = new Object2ObjectOpenHashMap<Biome, Climate>();
     }
 
+    public float CalculateTemperatureHeight(float y)
+    {
+        int temp;
+        if (y >= MaxHeight)
+            temp = (int) Math.floor((y - MaxHeight) * HeightModifier);
+        else if (y <= MinHeight)
+            temp = (int) Math.floor(Math.abs(y) * HeightModifier);
+        else
+            temp = 0;
+        return temp;
+    }
+
+    public float GetTemperature(Biome biome)
+    {
+        Climate climate = Biome2Climate.get(biome);
+        int seasonIndex = SeasonAPI.getSeason().ordinal();
+        return climate.Temperatures[seasonIndex];
+    }
+
+
     public void Register(ServerWorld world, Biome biome, int spring, int summer, int autumn, int winter)
     {
         Climate climate = new Climate();
-        climate.Temperatures = new int[4];
+        climate.Temperatures = new float[4];
         climate.Temperatures[0] = spring;
         climate.Temperatures[1] = summer;
         climate.Temperatures[2] = autumn;
@@ -34,7 +59,7 @@ public class BiomeTemperatures
         Biome2Climate.put(biome, climate);
     }
 
-    public void Register(ServerWorld world, Identifier biomeId, int[] temperatures)
+    public void Register(ServerWorld world, Identifier biomeId, float[] temperatures)
     {
         var biome = world.getRegistryManager().get(Registry.BIOME_KEY).get(biomeId);
         if (biome == null) return;
@@ -98,7 +123,7 @@ public class BiomeTemperatures
 
     public static class Climate
     {
-        int[] Temperatures;
+        float[] Temperatures;
     }
 
 }

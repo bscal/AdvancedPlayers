@@ -24,7 +24,7 @@ public class DistributedTickScheduler
 
 	public DistributedTickScheduler()
 	{
-		m_RunnableList = new ArrayList<>();
+		m_RunnableList = new ArrayList<>(16);
 		//m_UnregisterQueue = new ObjectArrayFIFOQueue<>(10);
 	}
 

@@ -2,6 +2,7 @@ package me.bscal.advancedplayer;
 
 import com.google.gson.Gson;
 import me.bscal.advancedplayer.common.APPlayerManager;
+import me.bscal.advancedplayer.common.BiomeTemperatures;
 import me.bscal.advancedplayer.common.commands.ServerCommands;
 import me.bscal.advancedplayer.common.entities.EntityRegistry;
 import me.bscal.advancedplayer.common.entities.GhoulEntity;
@@ -24,6 +25,7 @@ public class AdvancedPlayer implements ModInitializer
     public static final Logger LOGGER = (Logger) LogManager.getLogger("AdvancedPlayer");
     public static Gson Gson;
     public static APPlayerManager APPlayerManager;
+    public static BiomeTemperatures BiomeTemperatures;
     private static boolean SeasonsEnabled;
 
     @Override
@@ -40,10 +42,13 @@ public class AdvancedPlayer implements ModInitializer
         ItemRegistry.Init();
         RegisterEntityAttributes();
 
+        BiomeTemperatures = new BiomeTemperatures();
+
         ServerLifecycleEvents.SERVER_STARTED.register(server ->
         {
             APPlayerManager = new APPlayerManager(server);
             TemperatureBiomeRegistry.Init(server);
+            BiomeTemperatures.Init(server.getOverworld());
         });
 
         ServerPlayConnectionEvents.INIT.register((handler, sender) ->
@@ -56,9 +61,10 @@ public class AdvancedPlayer implements ModInitializer
         });
         ServerTickEvents.END_SERVER_TICK.register(server ->
         {
+            int tick = server.getTicks();
             for (var apPlayer : APPlayerManager.PlayerList)
             {
-                apPlayer.Update(server);
+                apPlayer.Update(server, tick);
             }
         });
     }

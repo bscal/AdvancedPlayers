@@ -74,7 +74,7 @@ public class APPlayerManager
         if (result == null)
             result = new APPlayer(serverPlayerEntity);
         AddAPPlayer(serverPlayerEntity, result);
-        result.Sync(System.currentTimeMillis());
+        result.Sync();
         return result;
     }
 
