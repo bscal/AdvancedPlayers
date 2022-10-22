@@ -51,6 +51,7 @@ public class DebugWindow implements HudRenderCallback
         LeftDebugTxt.add("Hunger = " + ap.Hunger);
         LeftDebugTxt.add("Wetness = " + ap.Wetness);
         LeftDebugTxt.add("BodyTemperature = " + ap.BodyTemperature);
+        LeftDebugTxt.add("BlockTemperature = " + ap.BlockTemperature);
         LeftDebugTxt.add("OutsideTemperature = " + ap.OutsideTemperature);
         LeftDebugTxt.add("BiomeTemperature = " + ap.BiomeTemperature);
         LeftDebugTxt.add("HeightTemperature = " + ap.HeightTemperature);

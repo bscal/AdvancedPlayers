@@ -1,14 +1,19 @@
 package me.bscal.advancedplayer.common;
 
 import io.netty.buffer.PooledByteBufAllocator;
+import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import me.bscal.advancedplayer.AdvancedPlayer;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.minecraft.block.Block;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.state.property.Properties;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
@@ -45,6 +50,7 @@ public class APPlayer implements Serializable
     public float OutsideTemperature;
     public float BiomeTemperature;
     public float HeightTemperature;
+    public float BlockTemperature;
     public float TempDelta;
 
     private transient int m_SyncCounter;
@@ -126,18 +132,57 @@ public class APPlayer implements Serializable
 
     private float ProcessWetness()
     {
-        return MathHelper.clamp(
-                Player.isSubmergedInWater() ? 15 : -.25f, 0f, 100f);
+        return MathHelper.lerp(
+                Player.isSubmergedInWater() ? 1 : -.25f, 0f, 100f);
+    }
+
+    public static final ObjectOpenHashSet<Block> TemperatureBlocks = new ObjectOpenHashSet<>();
+    static
+    {
+        TemperatureBlocks.add(Blocks.LAVA);
+        TemperatureBlocks.add(Blocks.FURNACE);
+        TemperatureBlocks.add(Blocks.BLAST_FURNACE);
+        TemperatureBlocks.add(Blocks.MAGMA_BLOCK);
+        TemperatureBlocks.add(Blocks.FIRE);
+        TemperatureBlocks.add(Blocks.SOUL_FIRE);
+        TemperatureBlocks.add(Blocks.CAMPFIRE);
+        TemperatureBlocks.add(Blocks.SOUL_CAMPFIRE);
+    }
+
+    private float ProcessBlockTemperature(BlockPos pos, int radius)
+    {
+        float blockTemperature = 0;
+        for (BlockPos itPos : BlockPos.iterateOutwards(pos, radius, radius, radius))
+        {
+            BlockState blockState = Player.world.getBlockState(itPos);
+            Block block = blockState.getBlock();
+
+            if (TemperatureBlocks.contains(block))
+            {
+                if (blockState.contains(Properties.LIT))
+                {
+                    if (blockState.get(Properties.LIT))
+                        blockTemperature = 5;
+                    break;
+                }
+                blockTemperature = 5;
+            }
+        }
+        return blockTemperature;
     }
 
     private void ProcessTemperature(BlockPos pos)
     {
         RegistryEntry<Biome> biome = Player.world.getBiome(pos);
+        BlockTemperature = ProcessBlockTemperature(pos, 3);
         BiomeTemperature = AdvancedPlayer.BiomeTemperatures.GetTemperature(biome.value());
         HeightTemperature = AdvancedPlayer.BiomeTemperatures.CalculateTemperatureHeight(pos.getY());
-        OutsideTemperature = BiomeTemperature + HeightTemperature;
-        TempDelta = 0.1f;
-        BodyTemperature = MathHelper.lerp(TempDelta, BodyTemperature, OutsideTemperature);
+        OutsideTemperature = BlockTemperature + BiomeTemperature + HeightTemperature;
+        TempDelta = .1f;
+        if (OutsideTemperature < 0)
+            BodyTemperature = Math.max(BodyTemperature - TempDelta, OutsideTemperature);
+        else
+            BodyTemperature = Math.min(BodyTemperature + TempDelta, OutsideTemperature);
     }
 
     public void Sync()
@@ -170,6 +215,7 @@ public class APPlayer implements Serializable
         buffer.writeVarInt(Hunger);
         buffer.writeFloat(Wetness);
         buffer.writeFloat(BodyTemperature);
+        buffer.writeFloat(BlockTemperature);
         buffer.writeFloat(OutsideTemperature);
         buffer.writeFloat(BiomeTemperature);
         buffer.writeFloat(HeightTemperature);
@@ -188,6 +234,7 @@ public class APPlayer implements Serializable
         Hunger = buffer.readVarInt();
         Wetness = buffer.readFloat();
         BodyTemperature = buffer.readFloat();
+        BlockTemperature = buffer.readFloat();
         OutsideTemperature = buffer.readFloat();
         BiomeTemperature = buffer.readFloat();
         HeightTemperature = buffer.readFloat();

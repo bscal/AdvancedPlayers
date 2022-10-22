@@ -32,9 +32,9 @@ public class BiomeTemperatures
     {
         int temp;
         if (y >= MaxHeight)
-            temp = (int) Math.floor((y - MaxHeight) * HeightModifier);
+            temp = (int) Math.floor(-(y - MaxHeight) * HeightModifier);
         else if (y <= MinHeight)
-            temp = (int) Math.floor(Math.abs(y) * HeightModifier);
+            temp = (int) Math.floor(y * HeightModifier);
         else
             temp = 0;
         return temp;
