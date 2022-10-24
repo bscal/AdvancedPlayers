@@ -28,6 +28,8 @@ public class AdvancedPlayer implements ModInitializer
     public static BiomeTemperatures BiomeTemperatures;
     private static boolean SeasonsEnabled;
 
+    public static final String KEY_ITEMSTACK_SPOIL = "SpoilDuration";
+
     @Override
     public void onInitialize()
     {
