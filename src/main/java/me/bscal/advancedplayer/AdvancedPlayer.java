@@ -14,6 +14,7 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry;
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.server.MinecraftServer;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.Logger;
@@ -27,8 +28,11 @@ public class AdvancedPlayer implements ModInitializer
     public static APPlayerManager APPlayerManager;
     public static BiomeTemperatures BiomeTemperatures;
     private static boolean SeasonsEnabled;
+    public static MinecraftServer Server;
 
     public static final String KEY_ITEMSTACK_SPOIL = "SpoilDuration";
+    public static final String KEY_ITEMSTACK_SPOIL_END = "SpoilEnd";
+    public static final String KEY_ITEMSTACK_SPOIL_RATE = "SpoilRate";
 
     @Override
     public void onInitialize()
@@ -48,6 +52,7 @@ public class AdvancedPlayer implements ModInitializer
 
         ServerLifecycleEvents.SERVER_STARTED.register(server ->
         {
+            Server = server;
             APPlayerManager = new APPlayerManager(server);
             TemperatureBiomeRegistry.Init(server);
             BiomeTemperatures.Init(server.getOverworld());

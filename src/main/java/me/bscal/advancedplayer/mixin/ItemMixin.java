@@ -1,7 +1,9 @@
 package me.bscal.advancedplayer.mixin;
 
+import me.bscal.advancedplayer.AdvancedPlayer;
 import me.bscal.advancedplayer.common.ItemStackMixinInterface;
 import net.minecraft.client.item.TooltipContext;
+import net.minecraft.entity.Entity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.text.MutableText;
@@ -19,20 +21,23 @@ public class ItemMixin
 {
 
     @Inject(method = "appendTooltip", at = @At(value = "TAIL"))
-    public void InitItemCount(ItemStack stack, World world, List<Text> tooltip, TooltipContext context, CallbackInfo ci)
+    public void AppendTooltip(ItemStack stack, World world, List<Text> tooltip, TooltipContext context, CallbackInfo ci)
     {
         Item item = (Item) (Object) this;
         if (item.isFood())
         {
             MutableText text = Text.empty();
 
-            long time = System.currentTimeMillis();
-            long spoilDuration = ((ItemStackMixinInterface) (Object) stack).GetSpoilDuration();
-            long seconds = (spoilDuration - time) / 1000;
+            var nbt = stack.getNbt();
+            if (nbt == null) return;
+
+
+            long durationInSecs =  ((ItemStackMixinInterface) (Object) stack).UpdateSpoilage(world.getTime());
+            durationInSecs /= 20;
 
             String str;
-            if (seconds > 0)
-                str = String.format("Spoils in %d seconds", seconds);
+            if (durationInSecs > 0)
+                str = String.format("Spoils in %d seconds", durationInSecs);
             else
                 str = "Spoiled";
 
@@ -40,5 +45,16 @@ public class ItemMixin
             tooltip.add(text);
         }
     }
+
+/*    @Inject(method = "inventoryTick", at = @At(value = "HEAD"))
+    public void InventoryTick(ItemStack stack, World world, Entity entity, int slot, boolean selected, CallbackInfo ci)
+    {
+        if (!world.isClient && stack.isFood())
+        {
+            ItemStackMixinInterface is = ((ItemStackMixinInterface) (Object) stack);
+            is.UpdateSpoilage(world.getTime());
+        }
+    }*/
+
 
 }
