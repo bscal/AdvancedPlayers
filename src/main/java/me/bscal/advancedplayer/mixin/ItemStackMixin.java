@@ -19,11 +19,12 @@ public class ItemStackMixin implements ItemStackMixinInterface
     {
         if (((ItemStack) (Object) this).isFood())
         {
+            long tick = 0;
             if (AdvancedPlayer.Server != null && AdvancedPlayer.Server.getOverworld() != null)
             {
-                long tick = AdvancedPlayer.Server.getOverworld().getTime();
-                InitSpoilage(tick, 20 * 30, 1.0f);
+                tick = AdvancedPlayer.Server.getOverworld().getTime();
             }
+            InitSpoilage(tick, 20 * 30, 1.0f);
         }
     }
 
@@ -33,9 +34,18 @@ public class ItemStackMixin implements ItemStackMixinInterface
         ItemStack itemStack = (ItemStack) (Object) this;
         NbtCompound root = itemStack.getOrCreateNbt();
         root.putLong(AdvancedPlayer.KEY_ITEMSTACK_SPOIL, spoilage);
-        root.putLong(AdvancedPlayer.KEY_ITEMSTACK_SPOIL_END, spoilageEnd);
+        root.putLong(AdvancedPlayer.KEY_ITEMSTACK_SPOIL_END, spoilage + spoilageEnd);
         root.putFloat(AdvancedPlayer.KEY_ITEMSTACK_SPOIL_RATE, rate);
         itemStack.setNbt(root);
+    }
+
+    @Override
+    public void SetSpoiled(NbtCompound nbt)
+    {
+        nbt.remove(AdvancedPlayer.KEY_ITEMSTACK_SPOIL);
+        nbt.remove(AdvancedPlayer.KEY_ITEMSTACK_SPOIL_END);
+        nbt.remove(AdvancedPlayer.KEY_ITEMSTACK_SPOIL_RATE);
+        nbt.putBoolean(AdvancedPlayer.KEY_ITEMSTACK_IS_SPOILED, true);
     }
 
     @Override
@@ -49,7 +59,7 @@ public class ItemStackMixin implements ItemStackMixinInterface
     }
 
     @Override
-    public long GetSpoilDuration()
+    public long GetTicksTillSpoiled()
     {
         ItemStack itemStack = (ItemStack) (Object) this;
         if (itemStack.isFood())
@@ -66,34 +76,8 @@ public class ItemStackMixin implements ItemStackMixinInterface
     @Override
     public boolean IsFresh()
     {
-        ItemStack itemStack = (ItemStack) (Object) this;
-        if (itemStack.isFood())
-        {
-            NbtCompound root = itemStack.getOrCreateNbt();
-            int spoilDuration = root.getInt(AdvancedPlayer.KEY_ITEMSTACK_SPOIL);
-            return spoilDuration < 0;
-        }
-        return false;
+        return GetTicksTillSpoiled() > 0;
     }
 
-    @Override
-    public long UpdateSpoilage(long time)
-    {
-        ItemStack itemStack = (ItemStack) (Object) this;
-        if (itemStack.isFood())
-        {
-            NbtCompound root = itemStack.getNbt();
-            if (root == null) return Long.MIN_VALUE;
-            long start = root.getLong(AdvancedPlayer.KEY_ITEMSTACK_SPOIL);
-            long diff = time - start;
-            float rate = root.getFloat(AdvancedPlayer.KEY_ITEMSTACK_SPOIL_RATE);
-            long spoilageWithModifier = (long) (diff * rate);
-            long duration = start + spoilageWithModifier;
-            root.putLong(AdvancedPlayer.KEY_ITEMSTACK_SPOIL, duration);
-            itemStack.setNbt(root);
-            return duration;
-        }
-        return Long.MIN_VALUE;
-    }
 
 }

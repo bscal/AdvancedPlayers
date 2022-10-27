@@ -4,8 +4,10 @@ import me.bscal.advancedplayer.AdvancedPlayer;
 import me.bscal.advancedplayer.common.ItemStackMixinInterface;
 import net.minecraft.client.item.TooltipContext;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NbtCompound;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
 import net.minecraft.world.World;
@@ -26,35 +28,62 @@ public class ItemMixin
         Item item = (Item) (Object) this;
         if (item.isFood())
         {
-            MutableText text = Text.empty();
+            var root = stack.getNbt();
+            if (root == null) return;
 
-            var nbt = stack.getNbt();
-            if (nbt == null) return;
+            if (root.contains(AdvancedPlayer.KEY_ITEMSTACK_IS_SPOILED))
+            {
+                AppendString(tooltip, "Spoiled");
+                return;
+            }
 
+            long start = root.getLong(AdvancedPlayer.KEY_ITEMSTACK_SPOIL);
+            long end = root.getLong(AdvancedPlayer.KEY_ITEMSTACK_SPOIL_END);
 
-            long durationInSecs =  ((ItemStackMixinInterface) (Object) stack).UpdateSpoilage(world.getTime());
-            durationInSecs /= 20;
+            // Used for recipes
+            if (start == 0)
+            {
+                AppendString(tooltip, String.format("Takes in %d seconds to spoil", end / 20));
+                return;
+            }
+
+            float rate = root.getFloat(AdvancedPlayer.KEY_ITEMSTACK_SPOIL_RATE);
+            long diff = world.getTime() - start;
+            long spoilageWithModifier = (long) (diff * rate);
+            long duration = start + spoilageWithModifier;
+            long timeTillSpoil = end - duration;
+            root.putLong(AdvancedPlayer.KEY_ITEMSTACK_SPOIL, duration);
 
             String str;
-            if (durationInSecs > 0)
-                str = String.format("Spoils in %d seconds", durationInSecs);
+            if (timeTillSpoil > 0)
+                str = String.format("Spoils in %d seconds", timeTillSpoil / 20);
             else
+            {
                 str = "Spoiled";
+                ((ItemStackMixinInterface)(Object)stack).SetSpoiled(root);
+            }
+            AppendString(tooltip, str);
 
-            text.append(str);
-            tooltip.add(text);
+            stack.setNbt(root);
         }
     }
 
-/*    @Inject(method = "inventoryTick", at = @At(value = "HEAD"))
-    public void InventoryTick(ItemStack stack, World world, Entity entity, int slot, boolean selected, CallbackInfo ci)
+    private void AppendString(List<Text> tooltip, String str)
+    {
+        MutableText text = Text.empty();
+        text.append(str);
+        tooltip.add(text);
+    }
+
+    @Inject(method = "onCraft", at = @At(value = "HEAD"))
+    public void OnCraft(ItemStack stack, World world, PlayerEntity player, CallbackInfo ci)
     {
         if (!world.isClient && stack.isFood())
         {
             ItemStackMixinInterface is = ((ItemStackMixinInterface) (Object) stack);
-            is.UpdateSpoilage(world.getTime());
+            is.InitSpoilage(world.getTime(), 20 * 30, 1.0f);
         }
-    }*/
+    }
 
 
 }

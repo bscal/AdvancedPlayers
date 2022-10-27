@@ -33,6 +33,7 @@ public class AdvancedPlayer implements ModInitializer
     public static final String KEY_ITEMSTACK_SPOIL = "SpoilDuration";
     public static final String KEY_ITEMSTACK_SPOIL_END = "SpoilEnd";
     public static final String KEY_ITEMSTACK_SPOIL_RATE = "SpoilRate";
+    public static final String KEY_ITEMSTACK_IS_SPOILED = "SpoiledFood";
 
     @Override
     public void onInitialize()
