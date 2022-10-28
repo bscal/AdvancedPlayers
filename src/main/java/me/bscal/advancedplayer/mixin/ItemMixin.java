@@ -1,13 +1,13 @@
 package me.bscal.advancedplayer.mixin;
 
 import me.bscal.advancedplayer.AdvancedPlayer;
+import me.bscal.advancedplayer.common.FoodSpoilage;
 import me.bscal.advancedplayer.common.ItemStackMixinInterface;
+import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
 import net.minecraft.client.item.TooltipContext;
-import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NbtCompound;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
 import net.minecraft.world.World;
@@ -31,19 +31,19 @@ public class ItemMixin
             var root = stack.getNbt();
             if (root == null) return;
 
-            if (root.contains(AdvancedPlayer.KEY_ITEMSTACK_IS_SPOILED))
+            long start = root.getLong(AdvancedPlayer.KEY_ITEMSTACK_SPOIL);
+            long end = root.getLong(AdvancedPlayer.KEY_ITEMSTACK_SPOIL_END);
+
+            if (start > end)
             {
                 AppendString(tooltip, "Spoiled");
                 return;
             }
 
-            long start = root.getLong(AdvancedPlayer.KEY_ITEMSTACK_SPOIL);
-            long end = root.getLong(AdvancedPlayer.KEY_ITEMSTACK_SPOIL_END);
-
             // Used for recipes
-            if (start == 0)
+            if (start == FoodSpoilage.INVALID_SPOILAGE)
             {
-                AppendString(tooltip, String.format("Takes in %d seconds to spoil", end / 20));
+                AppendString(tooltip, FormatSpoilTicksToStr(end));
                 return;
             }
 
@@ -52,19 +52,9 @@ public class ItemMixin
             long spoilageWithModifier = (long) (diff * rate);
             long duration = start + spoilageWithModifier;
             long timeTillSpoil = end - duration;
-            root.putLong(AdvancedPlayer.KEY_ITEMSTACK_SPOIL, duration);
 
-            String str;
-            if (timeTillSpoil > 0)
-                str = String.format("Spoils in %d seconds", timeTillSpoil / 20);
-            else
-            {
-                str = "Spoiled";
-                ((ItemStackMixinInterface)(Object)stack).SetSpoiled(root);
-            }
+            String str = FormatSpoilTicksToStr(timeTillSpoil);
             AppendString(tooltip, str);
-
-            stack.setNbt(root);
         }
     }
 
@@ -73,6 +63,30 @@ public class ItemMixin
         MutableText text = Text.empty();
         text.append(str);
         tooltip.add(text);
+    }
+
+    private String FormatSpoilTicksToStr(long ticks)
+    {
+        long formattedTick;
+        String timeframe;
+
+        if (ticks > 24000) //days
+        {
+            formattedTick = ticks / 24000;
+            timeframe = "days";
+        }
+        else if (ticks > 20 * 60) //minutes
+        {
+            formattedTick = ticks / 20 * 60;
+            timeframe = "minutes";
+        }
+        else
+        {
+            formattedTick = ticks / 20;
+            timeframe = "seconds";
+        }
+
+        return String.format("Spoils in %d %s", formattedTick, timeframe);
     }
 
     @Inject(method = "onCraft", at = @At(value = "HEAD"))

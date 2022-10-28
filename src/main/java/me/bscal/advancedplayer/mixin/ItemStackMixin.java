@@ -1,6 +1,7 @@
 package me.bscal.advancedplayer.mixin;
 
 import me.bscal.advancedplayer.AdvancedPlayer;
+import me.bscal.advancedplayer.common.FoodSpoilage;
 import me.bscal.advancedplayer.common.ItemStackMixinInterface;
 import net.minecraft.item.ItemConvertible;
 import net.minecraft.item.ItemStack;
@@ -19,12 +20,14 @@ public class ItemStackMixin implements ItemStackMixinInterface
     {
         if (((ItemStack) (Object) this).isFood())
         {
-            long tick = 0;
+            long tick = FoodSpoilage.INVALID_SPOILAGE;
             if (AdvancedPlayer.Server != null && AdvancedPlayer.Server.getOverworld() != null)
             {
                 tick = AdvancedPlayer.Server.getOverworld().getTime();
             }
-            InitSpoilage(tick, 20 * 30, 1.0f);
+
+            FoodSpoilage.SpoilageData spoilageData = FoodSpoilage.SPOILAGE_MAP.get(item.asItem());
+            InitSpoilage(tick, spoilageData.TicksTillSpoiled, 1.0f);
         }
     }
 
@@ -65,12 +68,12 @@ public class ItemStackMixin implements ItemStackMixinInterface
         if (itemStack.isFood())
         {
             NbtCompound root = itemStack.getNbt();
-            if (root == null) return Integer.MIN_VALUE;
+            if (root == null) return FoodSpoilage.DOES_NOT_SPOIL;
             long start = root.getLong(AdvancedPlayer.KEY_ITEMSTACK_SPOIL);
             long end = root.getLong(AdvancedPlayer.KEY_ITEMSTACK_SPOIL_END);
             return end - start;
         }
-        return Integer.MIN_VALUE;
+        return FoodSpoilage.DOES_NOT_SPOIL;
     }
 
     @Override
