@@ -5,6 +5,7 @@ import me.bscal.advancedplayer.common.FoodSpoilage;
 import me.bscal.advancedplayer.common.ItemStackMixinInterface;
 import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
 import net.minecraft.client.item.TooltipContext;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -40,21 +41,20 @@ public class ItemMixin
                 return;
             }
 
+            float rate = root.getFloat(AdvancedPlayer.KEY_ITEMSTACK_SPOIL_RATE);
+            long timeAdvancedSinceLastUpdate = world.getTime() - start;
+            long timeTillSpoilWithModifier = (long) (timeAdvancedSinceLastUpdate * rate);
+            long duration = start + timeTillSpoilWithModifier;
+
             // Used for recipes
             if (start == FoodSpoilage.INVALID_SPOILAGE)
-            {
                 AppendString(tooltip, FormatSpoilTicksToStr(end));
-                return;
-            }
 
-            float rate = root.getFloat(AdvancedPlayer.KEY_ITEMSTACK_SPOIL_RATE);
-            long diff = world.getTime() - start;
-            long spoilageWithModifier = (long) (diff * rate);
-            long duration = start + spoilageWithModifier;
             long timeTillSpoil = end - duration;
-
-            String str = FormatSpoilTicksToStr(timeTillSpoil);
-            AppendString(tooltip, str);
+            if (duration < end)
+                AppendString(tooltip, FormatSpoilTicksToStr(timeTillSpoil));
+            else
+                AppendString(tooltip, "Spoiled");
         }
     }
 
@@ -99,5 +99,11 @@ public class ItemMixin
         }
     }
 
+    @Inject(method = "inventoryTick", at = @At(value = "HEAD"))
+    public void InventoryTick(ItemStack stack, World world, Entity entity, int slot, boolean selected, CallbackInfo ci)
+    {
+/*        if (!stack.isFood()) return;
+        ((ItemStackMixinInterface)(Object)stack).UpdateSpoilage(stack, world.getTime());*/
+    }
 
 }

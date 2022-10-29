@@ -30,6 +30,10 @@ public class AdvancedPlayer implements ModInitializer
     private static boolean SeasonsEnabled;
     public static MinecraftServer Server;
 
+    public static long NextSpoilTick;
+    public static long NextSpoilIncrement = 20 * 1;
+    private static int NextSpoilCounter;
+
     public static final String KEY_ITEMSTACK_SPOIL = "SpoilDuration";
     public static final String KEY_ITEMSTACK_SPOIL_END = "SpoilEnd";
     public static final String KEY_ITEMSTACK_SPOIL_RATE = "SpoilRate";
@@ -70,6 +74,13 @@ public class AdvancedPlayer implements ModInitializer
         ServerTickEvents.END_SERVER_TICK.register(server ->
         {
             int tick = server.getTicks();
+
+            if (NextSpoilCounter++ > 20 * 60)
+            {
+                NextSpoilCounter = 0;
+                NextSpoilTick = server.getOverworld().getTime() + NextSpoilIncrement;
+            }
+
             for (var apPlayer : APPlayerManager.PlayerList)
             {
                 apPlayer.Update(server, tick);

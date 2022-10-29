@@ -1,5 +1,6 @@
 package me.bscal.advancedplayer.common;
 
+import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
 
 public interface ItemStackMixinInterface
@@ -14,5 +15,7 @@ public interface ItemStackMixinInterface
     long GetTicksTillSpoiled();
 
     boolean IsFresh();
+
+    void UpdateSpoilage(ItemStack stack, long currentTick);
 
 }
