@@ -3,6 +3,7 @@ package me.bscal.advancedplayer;
 import com.google.gson.Gson;
 import me.bscal.advancedplayer.common.APPlayerManager;
 import me.bscal.advancedplayer.common.BiomeTemperatures;
+import me.bscal.advancedplayer.common.ItemStackMixinInterface;
 import me.bscal.advancedplayer.common.commands.ServerCommands;
 import me.bscal.advancedplayer.common.entities.EntityRegistry;
 import me.bscal.advancedplayer.common.entities.GhoulEntity;
@@ -75,14 +76,27 @@ public class AdvancedPlayer implements ModInitializer
         {
             int tick = server.getTicks();
 
-            if (NextSpoilCounter++ > 20 * 60)
+            if (NextSpoilCounter++ == NextSpoilIncrement)
             {
                 NextSpoilCounter = 0;
                 NextSpoilTick = server.getOverworld().getTime() + NextSpoilIncrement;
+                LOGGER.info("TICKED");
             }
 
             for (var apPlayer : APPlayerManager.PlayerList)
             {
+                if (NextSpoilCounter == NextSpoilIncrement)
+                {
+                    var screen = apPlayer.Player.currentScreenHandler;
+                    if (screen != null)
+                    {
+                        for (var slot : screen.slots)
+                        {
+                            var stack = slot.getStack();
+                            ((ItemStackMixinInterface) (Object) stack).UpdateSpoilage(stack, apPlayer.Player.world.getTime());
+                        }
+                    }
+                }
                 apPlayer.Update(server, tick);
             }
         });

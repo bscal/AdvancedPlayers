@@ -9,6 +9,7 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
 import net.minecraft.world.World;
@@ -27,7 +28,7 @@ public class ItemMixin
     public void AppendTooltip(ItemStack stack, World world, List<Text> tooltip, TooltipContext context, CallbackInfo ci)
     {
         Item item = (Item) (Object) this;
-        if (item.isFood())
+        if (item.isFood() && world != null)
         {
             var root = stack.getNbt();
             if (root == null) return;
@@ -48,7 +49,10 @@ public class ItemMixin
 
             // Used for recipes
             if (start == FoodSpoilage.INVALID_SPOILAGE)
+            {
                 AppendString(tooltip, FormatSpoilTicksToStr(end));
+                return;
+            }
 
             long timeTillSpoil = end - duration;
             if (duration < end)
@@ -102,8 +106,9 @@ public class ItemMixin
     @Inject(method = "inventoryTick", at = @At(value = "HEAD"))
     public void InventoryTick(ItemStack stack, World world, Entity entity, int slot, boolean selected, CallbackInfo ci)
     {
-/*        if (!stack.isFood()) return;
-        ((ItemStackMixinInterface)(Object)stack).UpdateSpoilage(stack, world.getTime());*/
+        if (entity instanceof ServerPlayerEntity player && stack.isFood())
+        {
+        }
     }
 
 }

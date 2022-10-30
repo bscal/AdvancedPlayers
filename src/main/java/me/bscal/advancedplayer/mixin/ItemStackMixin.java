@@ -21,12 +21,12 @@ public class ItemStackMixin implements ItemStackMixinInterface
         if (((ItemStack) (Object) this).isFood())
         {
             long tick = FoodSpoilage.INVALID_SPOILAGE;
-/*            if (AdvancedPlayer.Server != null && AdvancedPlayer.Server.getOverworld() != null)
+            if (AdvancedPlayer.Server != null && AdvancedPlayer.Server.getOverworld() != null)
             {
-                tick = AdvancedPlayer.Server.getOverworld().getTime();
-            }*/
+                tick = AdvancedPlayer.NextSpoilTick;
+            }
 
-            tick = AdvancedPlayer.NextSpoilTick;
+
 
             FoodSpoilage.SpoilageData spoilageData = FoodSpoilage.SPOILAGE_MAP.get(item.asItem());
             InitSpoilage(tick, 20 * 30, 1.0f);
@@ -98,11 +98,16 @@ public class ItemStackMixin implements ItemStackMixinInterface
         long duration = start + spoilageWithModifier;
         long timeTillSpoil = end - duration;
 
-        if (timeTillSpoil <= 0)
+        if (timeTillSpoil < 0)
         {
             ((ItemStackMixinInterface)(Object)stack).SetSpoiled(nbt);
-            stack.setNbt(nbt);
         }
+        else
+        {
+            nbt.putLong(AdvancedPlayer.KEY_ITEMSTACK_SPOIL, duration);
+        }
+
+        stack.setNbt(nbt);
     }
 
 }
