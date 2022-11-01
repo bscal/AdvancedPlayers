@@ -89,6 +89,7 @@ public class ItemStackMixin implements ItemStackMixinInterface
     {
         NbtCompound nbt = stack.getNbt();
         if (nbt == null) return;
+        if (!nbt.contains(AdvancedPlayer.KEY_ITEMSTACK_SPOIL)) return;
 
         long start = nbt.getLong(AdvancedPlayer.KEY_ITEMSTACK_SPOIL);
         long end = nbt.getLong(AdvancedPlayer.KEY_ITEMSTACK_SPOIL_END);

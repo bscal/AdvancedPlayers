@@ -31,9 +31,9 @@ public class AdvancedPlayer implements ModInitializer
     private static boolean SeasonsEnabled;
     public static MinecraftServer Server;
 
+    public static long NextSpoilIncrement = 20 * 30;
     public static long NextSpoilTick;
-    public static long NextSpoilIncrement = 20 * 1;
-    private static int NextSpoilCounter;
+    private static int NextSpoilCounter = (int)NextSpoilIncrement;
 
     public static final String KEY_ITEMSTACK_SPOIL = "SpoilDuration";
     public static final String KEY_ITEMSTACK_SPOIL_END = "SpoilEnd";
