@@ -33,15 +33,16 @@ public class ItemMixin
             var root = stack.getNbt();
             if (root == null) return;
 
-            long start = root.getLong(AdvancedPlayer.KEY_ITEMSTACK_SPOIL);
+
             long end = root.getLong(AdvancedPlayer.KEY_ITEMSTACK_SPOIL_END);
 
-            if (start > end)
+            if (end < world.getTime())
             {
                 AppendString(tooltip, "Spoiled");
                 return;
             }
 
+            long start = root.getLong(AdvancedPlayer.KEY_ITEMSTACK_SPOIL);
             float rate = root.getFloat(AdvancedPlayer.KEY_ITEMSTACK_SPOIL_RATE);
             long timeAdvancedSinceLastUpdate = world.getTime() - start;
             long timeTillSpoilWithModifier = (long) (timeAdvancedSinceLastUpdate * rate);
@@ -100,14 +101,6 @@ public class ItemMixin
         {
             ItemStackMixinInterface is = ((ItemStackMixinInterface) (Object) stack);
             is.InitSpoilage(world.getTime(), 20 * 30, 1.0f);
-        }
-    }
-
-    @Inject(method = "inventoryTick", at = @At(value = "HEAD"))
-    public void InventoryTick(ItemStack stack, World world, Entity entity, int slot, boolean selected, CallbackInfo ci)
-    {
-        if (entity instanceof ServerPlayerEntity player && stack.isFood())
-        {
         }
     }
 

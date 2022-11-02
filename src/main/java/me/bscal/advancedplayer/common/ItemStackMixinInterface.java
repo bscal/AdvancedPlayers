@@ -12,10 +12,10 @@ public interface ItemStackMixinInterface
 
     void SetSpoilageRate(float rate);
 
-    long GetTicksTillSpoiled();
+    long GetTicksTillSpoiled(long currentTime);
 
-    boolean IsFresh();
+    boolean IsFresh(long currentTime);
 
-    void UpdateSpoilage(ItemStack stack, long currentTick);
+    void UpdateSpoilage(long currentTick);
 
 }

@@ -20,16 +20,9 @@ public class ItemStackMixin implements ItemStackMixinInterface
     {
         if (((ItemStack) (Object) this).isFood())
         {
-            long tick = FoodSpoilage.INVALID_SPOILAGE;
-            if (AdvancedPlayer.Server != null && AdvancedPlayer.Server.getOverworld() != null)
-            {
-                tick = AdvancedPlayer.NextSpoilTick;
-            }
-
-
-
+            long currentTick = FoodSpoilage.NextSpoilTick;
             FoodSpoilage.SpoilageData spoilageData = FoodSpoilage.SPOILAGE_MAP.get(item.asItem());
-            InitSpoilage(tick, 20 * 30, 1.0f);
+            InitSpoilage(currentTick, 20 * 30, 1.0f);
         }
     }
 
@@ -57,36 +50,45 @@ public class ItemStackMixin implements ItemStackMixinInterface
     public void SetSpoilageRate(float rate)
     {
         ItemStack itemStack = (ItemStack) (Object) this;
-        NbtCompound root = itemStack.getNbt();
-        if (root == null) return;
-        root.putFloat(AdvancedPlayer.KEY_ITEMSTACK_SPOIL_RATE, rate);
-        itemStack.setNbt(root);
+        if (itemStack.isFood())
+        {
+            NbtCompound nbt = itemStack.getNbt();
+            if (nbt == null) return;
+            if (!nbt.contains(AdvancedPlayer.KEY_ITEMSTACK_SPOIL)) return;
+            nbt.putFloat(AdvancedPlayer.KEY_ITEMSTACK_SPOIL_RATE, rate);
+            itemStack.setNbt(nbt);
+        }
     }
 
     @Override
-    public long GetTicksTillSpoiled()
+    public long GetTicksTillSpoiled(long currentTime)
     {
         ItemStack itemStack = (ItemStack) (Object) this;
         if (itemStack.isFood())
         {
             NbtCompound root = itemStack.getNbt();
             if (root == null) return FoodSpoilage.DOES_NOT_SPOIL;
+            if (!root.contains(AdvancedPlayer.KEY_ITEMSTACK_SPOIL)) return FoodSpoilage.DOES_NOT_SPOIL;
             long start = root.getLong(AdvancedPlayer.KEY_ITEMSTACK_SPOIL);
             long end = root.getLong(AdvancedPlayer.KEY_ITEMSTACK_SPOIL_END);
-            return end - start;
+            float rate = root.getFloat(AdvancedPlayer.KEY_ITEMSTACK_SPOIL_RATE);
+            long progressedTicks = GetSpoilProgress(currentTime, start, rate);
+            long progressFromStart = start + progressedTicks;
+            return end - progressFromStart;
         }
         return FoodSpoilage.DOES_NOT_SPOIL;
     }
 
     @Override
-    public boolean IsFresh()
+    public boolean IsFresh(long currentTime)
     {
-        return GetTicksTillSpoiled() > 0;
+        return GetTicksTillSpoiled(currentTime) > 0;
     }
 
     @Override
-    public void UpdateSpoilage(ItemStack stack, long currentTick)
+    public void UpdateSpoilage(long currentTick)
     {
+        ItemStack stack = (ItemStack) (Object) this;
         NbtCompound nbt = stack.getNbt();
         if (nbt == null) return;
         if (!nbt.contains(AdvancedPlayer.KEY_ITEMSTACK_SPOIL)) return;
@@ -94,21 +96,24 @@ public class ItemStackMixin implements ItemStackMixinInterface
         long start = nbt.getLong(AdvancedPlayer.KEY_ITEMSTACK_SPOIL);
         long end = nbt.getLong(AdvancedPlayer.KEY_ITEMSTACK_SPOIL_END);
         float rate = nbt.getFloat(AdvancedPlayer.KEY_ITEMSTACK_SPOIL_RATE);
-        long diff = currentTick - start;
-        long spoilageWithModifier = (long) (diff * rate);
-        long duration = start + spoilageWithModifier;
-        long timeTillSpoil = end - duration;
 
-        if (timeTillSpoil < 0)
-        {
-            ((ItemStackMixinInterface)(Object)stack).SetSpoiled(nbt);
-        }
+        long progressedTicks = GetSpoilProgress(currentTick, start, rate);
+        long progressFromStart = start + progressedTicks;
+        long remainingTicks = end - progressFromStart;
+
+        if (remainingTicks > 0)
+            nbt.putLong(AdvancedPlayer.KEY_ITEMSTACK_SPOIL, progressFromStart);
         else
-        {
-            nbt.putLong(AdvancedPlayer.KEY_ITEMSTACK_SPOIL, duration);
-        }
+            ((ItemStackMixinInterface)(Object)stack).SetSpoiled(nbt);
 
         stack.setNbt(nbt);
     }
+
+    private long GetSpoilProgress(long currentTick, long start, float rate)
+    {
+        long baseProgress = currentTick - start;
+        return (long)(baseProgress * rate);
+    }
+
 
 }

@@ -74,6 +74,8 @@ public class APPlayer implements Serializable
         boolean secondTick = m_SecondCounter++ == 20;
         if (secondTick) m_SecondCounter = 0;
 
+        UpdateSpoiledItemStacks();
+
         Thirst -= 0.01f;
         Hunger -= 0.0025f;
 
@@ -150,6 +152,22 @@ public class APPlayer implements Serializable
         TemperatureBlocks.add(Blocks.SOUL_FIRE);
         TemperatureBlocks.add(Blocks.CAMPFIRE);
         TemperatureBlocks.add(Blocks.SOUL_CAMPFIRE);
+    }
+
+    private void UpdateSpoiledItemStacks()
+    {
+        if (FoodSpoilage.NextSpoilCounter == FoodSpoilage.NextSpoilIncrement)
+        {
+            var screen = Player.currentScreenHandler;
+            if (screen != null)
+            {
+                for (var slot : screen.slots)
+                {
+                    var stack = slot.getStack();
+                    ((ItemStackMixinInterface) (Object) stack).UpdateSpoilage(Player.world.getTime());
+                }
+            }
+        }
     }
 
     private float ProcessBlockTemperature(BlockPos pos, int radius)

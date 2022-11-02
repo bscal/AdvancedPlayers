@@ -95,8 +95,9 @@ public final class ServerCommands
 				if (stackNbt == null) return 0;
 				if (!stackNbt.contains(AdvancedPlayer.KEY_ITEMSTACK_SPOIL)) return 0;
 
-				boolean isLowestStackInHand = true;
-				long lowestSpoiledTicks = ((ItemStackMixinInterface)(Object)stackInHand).GetTicksTillSpoiled();
+				boolean isLowestStackInHand;
+				long currentTime = player.world.getTime();
+				long lowestSpoiledTicks = ((ItemStackMixinInterface)(Object)stackInHand).GetTicksTillSpoiled(currentTime);
 				for (int i = 0; i < player.getInventory().size(); ++i)
 				{
 					var slotItem = player.getInventory().getStack(i);
@@ -110,7 +111,7 @@ public final class ServerCommands
 					if (slotNbt.contains(AdvancedPlayer.KEY_ITEMSTACK_IS_SPOILED)) continue;
 
 					isLowestStackInHand = true;
-					long slotTicksTillSpoiled = ((ItemStackMixinInterface)(Object)slotItem).GetTicksTillSpoiled();
+					long slotTicksTillSpoiled = ((ItemStackMixinInterface)(Object)slotItem).GetTicksTillSpoiled(currentTime);
 					if (slotTicksTillSpoiled < lowestSpoiledTicks)
 					{
 						lowestSpoiledTicks = slotTicksTillSpoiled;
