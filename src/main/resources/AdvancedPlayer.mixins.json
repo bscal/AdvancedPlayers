@@ -9,6 +9,7 @@
     "ItemStackMixin",
     "LivingEntityMixin",
     "MemoryModuleTypeAccessor",
+    "PlayerEntityMixin",
     "ScreenHandlerMixin",
     "SensorTypeAccessor",
     "ServerPlayerEntityMixin"
