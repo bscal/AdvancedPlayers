@@ -2,6 +2,7 @@ package me.bscal.advancedplayer.common;
 
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.buffer.Unpooled;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import me.bscal.advancedplayer.AdvancedPlayer;
 import net.minecraft.network.PacketByteBuf;
@@ -24,6 +25,7 @@ public class APPlayerManager
     public static final String SAVE_EXTENSION = ".bin";
 
     public final Object2ObjectOpenHashMap<UUID, APPlayer> UUIDToPlayerMap;
+    public final Int2ObjectOpenHashMap<Traits>
     public final List<APPlayer> PlayerList;
     public final String SavePath;
 

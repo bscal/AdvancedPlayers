@@ -10,7 +10,6 @@ import net.minecraft.block.Blocks;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.effect.StatusEffects;
-import net.minecraft.item.Items;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -19,12 +18,11 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.random.Random;
-import net.minecraft.util.registry.BuiltinRegistries;
-import net.minecraft.util.registry.Registry;
 import net.minecraft.util.registry.RegistryEntry;
 import net.minecraft.world.biome.Biome;
 
 import java.io.Serializable;
+import java.util.BitSet;
 
 public class APPlayer implements Serializable
 {
@@ -56,17 +54,21 @@ public class APPlayer implements Serializable
     public float BlockTemperature;
     public float TempDelta;
 
+    public BitSet Traits;
+
     private transient int m_SyncCounter;
     private transient int m_SecondCounter;
 
     public APPlayer(MinecraftClient client)
     {
         Player = null;
+        Traits = new BitSet();
     }
 
     public APPlayer(ServerPlayerEntity serverPlayerEntity)
     {
         Player = serverPlayerEntity;
+        Traits = new BitSet();
     }
 
     public void Update(MinecraftServer server, int serverTickTime)
@@ -241,6 +243,7 @@ public class APPlayer implements Serializable
         buffer.writeFloat(BiomeTemperature);
         buffer.writeFloat(HeightTemperature);
         buffer.writeFloat(TempDelta);
+        buffer.writeBitSet(Traits);
     }
 
     public void Deserialize(PacketByteBuf buffer)
@@ -260,6 +263,7 @@ public class APPlayer implements Serializable
         BiomeTemperature = buffer.readFloat();
         HeightTemperature = buffer.readFloat();
         TempDelta = buffer.readFloat();
+        Traits = buffer.readBitSet();
     }
 
     private static boolean Chance(float chance)
