@@ -5,6 +5,8 @@ import io.netty.buffer.Unpooled;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import me.bscal.advancedplayer.AdvancedPlayer;
+import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.NbtIo;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -25,7 +27,7 @@ public class APPlayerManager
     public static final String SAVE_EXTENSION = ".bin";
 
     public final Object2ObjectOpenHashMap<UUID, APPlayer> UUIDToPlayerMap;
-    public final Int2ObjectOpenHashMap<Traits>
+    public final Object2ObjectOpenHashMap<Traits, List<TraitsInstance>> TraitInstances;
     public final List<APPlayer> PlayerList;
     public final String SavePath;
 
@@ -34,6 +36,65 @@ public class APPlayerManager
         UUIDToPlayerMap = new Object2ObjectOpenHashMap<>(10);
         PlayerList = new ArrayList<>(10);
         SavePath = server.getSavePath(WorldSavePath.ROOT) + "/" + AdvancedPlayer.MOD_ID + "/players/";
+        TraitInstances = new Object2ObjectOpenHashMap<>();
+    }
+
+    public void OnStart(MinecraftServer server)
+    {
+        Traits.RegisterTraits();
+    }
+
+    public void OnShutdown(MinecraftServer server)
+    {
+        SaveTraits();
+    }
+
+    public void RegisterTrait(Traits trait)
+    {
+        File file = new File(SavePath, "Traits.nbt");
+        if (!file.exists()) return;
+        try
+        {
+            NbtCompound nbt = NbtIo.read(file);
+            if (nbt == null) return;
+            var traitsList = LoadTraits(trait, nbt);
+            TraitInstances.put(trait, traitsList);
+        } catch (IOException e)
+        {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public List<TraitsInstance> LoadTraits(Traits trait, NbtCompound traitsNbt)
+    {
+        if (!traitsNbt.contains(trait.Name)) return new ArrayList<>();
+        byte[] data = traitsNbt.getByteArray(trait.Name);
+        return TraitsInstance.Deserialize(data);
+    }
+
+    public void SaveTraits()
+    {
+        NbtCompound nbt = new NbtCompound();
+        for (var traitsList : TraitInstances.entrySet())
+        {
+            String key = traitsList.getKey().Name;
+            byte[] data = TraitsInstance.Serialize(traitsList.getValue());
+            nbt.putByteArray(key, data);
+        }
+
+        File file = new File(SavePath, "Traits.nbt");
+        if (!file.exists())
+        {
+            file.mkdirs();
+        }
+
+        try
+        {
+            NbtIo.write(nbt, file);
+        } catch (IOException e)
+        {
+            throw new RuntimeException(e);
+        }
     }
 
     public void AddAPPlayer(ServerPlayerEntity serverPlayer, APPlayer apPlayer)

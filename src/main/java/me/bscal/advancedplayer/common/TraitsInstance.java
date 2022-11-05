@@ -1,13 +1,9 @@
 package me.bscal.advancedplayer.common;
 
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.network.PacketByteBuf;
-import org.apache.commons.lang3.SerializationUtils;
-
 import java.io.*;
 import java.util.List;
 
-public abstract class TraitsInstance implements Serializable
+public class TraitsInstance implements Serializable
 {
 
     public static byte[] Serialize(List<TraitsInstance> instanceList)
@@ -37,6 +33,17 @@ public abstract class TraitsInstance implements Serializable
         {
             throw new RuntimeException(e);
         }
+    }
+
+    public static class FluInstance extends TraitsInstance
+    {
+        public int Duration;
+
+        public FluInstance(int durationInTicks)
+        {
+            Duration = durationInTicks;
+        }
+
     }
 
 }

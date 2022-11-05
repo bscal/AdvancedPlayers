@@ -57,8 +57,14 @@ public class AdvancedPlayer implements ModInitializer
         {
             Server = server;
             APPlayerManager = new APPlayerManager(server);
+            APPlayerManager.OnStart(server);
             TemperatureBiomeRegistry.Init(server);
             BiomeTemperatures.Init(server.getOverworld());
+        });
+
+        ServerLifecycleEvents.SERVER_STOPPING.register(server ->
+        {
+            APPlayerManager.OnShutdown(server);
         });
 
         ServerPlayConnectionEvents.INIT.register((handler, sender) ->
