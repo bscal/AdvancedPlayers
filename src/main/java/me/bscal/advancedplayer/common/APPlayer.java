@@ -1,6 +1,8 @@
 package me.bscal.advancedplayer.common;
 
 import io.netty.buffer.PooledByteBufAllocator;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import me.bscal.advancedplayer.AdvancedPlayer;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
@@ -27,6 +29,7 @@ import java.util.BitSet;
 public class APPlayer implements Serializable
 {
 
+    public static final long serialVersionUID = 1L;
     public static final Identifier SYNC_PACKET = new Identifier(AdvancedPlayer.MOD_ID, "applayer_sync");
     public static final Random RANDOM = Random.create();
 
@@ -55,6 +58,7 @@ public class APPlayer implements Serializable
     public float TempDelta;
 
     public BitSet Traits;
+    public Object2ObjectOpenHashMap<String, TraitsInstance> TraitsInstance;
 
     private transient int m_SyncCounter;
     private transient int m_SecondCounter;

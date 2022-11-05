@@ -25,10 +25,11 @@ public class APPlayerManager
 {
 
     public static final String SAVE_EXTENSION = ".bin";
+    public static final String TRAITS_SAVE_FILE = "Traits.dat";
 
     public final Object2ObjectOpenHashMap<UUID, APPlayer> UUIDToPlayerMap;
-    public final Object2ObjectOpenHashMap<Traits, List<TraitsInstance>> TraitInstances;
     public final List<APPlayer> PlayerList;
+    public final Object2ObjectOpenHashMap<String, Traits> String2TraitsRegister;
     public final String SavePath;
 
     public APPlayerManager(MinecraftServer server)
@@ -37,6 +38,7 @@ public class APPlayerManager
         PlayerList = new ArrayList<>(10);
         SavePath = server.getSavePath(WorldSavePath.ROOT) + "/" + AdvancedPlayer.MOD_ID + "/players/";
         TraitInstances = new Object2ObjectOpenHashMap<>();
+        String2TraitsRegister = new Object2ObjectOpenHashMap<>();
     }
 
     public void OnStart(MinecraftServer server)
@@ -51,7 +53,7 @@ public class APPlayerManager
 
     public void RegisterTrait(Traits trait)
     {
-        File file = new File(SavePath, "Traits.nbt");
+        File file = new File(SavePath, TRAITS_SAVE_FILE);
         if (!file.exists()) return;
         try
         {
@@ -59,6 +61,7 @@ public class APPlayerManager
             if (nbt == null) return;
             var traitsList = LoadTraits(trait, nbt);
             TraitInstances.put(trait, traitsList);
+            String2TraitsRegister.put(trait.Name, trait);
         } catch (IOException e)
         {
             throw new RuntimeException(e);
@@ -82,10 +85,10 @@ public class APPlayerManager
             nbt.putByteArray(key, data);
         }
 
-        File file = new File(SavePath, "Traits.nbt");
+        File file = new File(SavePath, TRAITS_SAVE_FILE);
         if (!file.exists())
         {
-            file.mkdirs();
+            file.getParentFile().mkdirs();
         }
 
         try
