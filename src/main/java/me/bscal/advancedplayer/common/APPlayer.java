@@ -58,7 +58,7 @@ public class APPlayer implements Serializable
     public float TempDelta;
 
     public BitSet Traits;
-    public Object2ObjectOpenHashMap<String, TraitsInstance> TraitsInstance;
+    public Object2ObjectOpenHashMap<String, TraitsInstance> TraitsMap;
 
     private transient int m_SyncCounter;
     private transient int m_SecondCounter;
@@ -67,12 +67,28 @@ public class APPlayer implements Serializable
     {
         Player = null;
         Traits = new BitSet();
+        TraitsMap = new Object2ObjectOpenHashMap<>();
     }
 
     public APPlayer(ServerPlayerEntity serverPlayerEntity)
     {
         Player = serverPlayerEntity;
         Traits = new BitSet();
+        TraitsMap = new Object2ObjectOpenHashMap<>();
+    }
+
+    public void AddTrait(Traits trait)
+    {
+        Traits.set(trait.Id);
+        TraitsMap.put(trait.Name, trait.DefaultInstance);
+        AdvancedPlayer.LOGGER.debug(String.format("ADDED trait %s to player %s", trait.Name, Player.getPlayerListName().getString()));
+    }
+
+    public void RemoveTrait(Traits trait)
+    {
+        Traits.clear(trait.Id);
+        TraitsMap.remove(trait.Name);
+        AdvancedPlayer.LOGGER.debug(String.format("REMOVED trait %s to player %s", trait.Name, Player.getPlayerListName().getString()));
     }
 
     public void Update(MinecraftServer server, int serverTickTime)

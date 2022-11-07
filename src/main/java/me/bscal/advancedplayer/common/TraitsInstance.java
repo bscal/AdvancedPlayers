@@ -6,6 +6,13 @@ import java.util.List;
 public class TraitsInstance implements Serializable
 {
 
+    public String TraitsName;
+
+    public TraitsInstance(String traitsName)
+    {
+        TraitsName = traitsName;
+    }
+
     public static byte[] Serialize(List<TraitsInstance> instanceList)
     {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -39,11 +46,12 @@ public class TraitsInstance implements Serializable
     {
         public int Duration;
 
-        public FluInstance(int durationInTicks)
-        {
-            Duration = durationInTicks;
-        }
 
+        public FluInstance(String traitsName, int duration)
+        {
+            super(traitsName);
+            Duration = duration;
+        }
     }
 
 }

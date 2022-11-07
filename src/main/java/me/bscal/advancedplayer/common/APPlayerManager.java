@@ -1,16 +1,24 @@
 package me.bscal.advancedplayer.common;
 
+import com.mojang.serialization.Lifecycle;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.buffer.Unpooled;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import me.bscal.advancedplayer.AdvancedPlayer;
+import net.fabricmc.fabric.api.networking.v1.S2CPlayChannelEvents;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.WorldSavePath;
+import net.minecraft.util.registry.Registry;
+import net.minecraft.util.registry.RegistryEntry;
+import net.minecraft.util.registry.RegistryKey;
+import net.minecraft.util.registry.SimpleRegistry;
 import org.apache.commons.lang3.SerializationUtils;
 
 import java.io.File;
@@ -20,6 +28,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.function.Function;
 
 public class APPlayerManager
 {
@@ -29,7 +38,9 @@ public class APPlayerManager
 
     public final Object2ObjectOpenHashMap<UUID, APPlayer> UUIDToPlayerMap;
     public final List<APPlayer> PlayerList;
-    public final Object2ObjectOpenHashMap<String, Traits> String2TraitsRegister;
+    public final Object2ObjectOpenHashMap<String, Traits> TraitsRegister;
+    public final Object2IntOpenHashMap<String> TraitNameToId;
+    public int NextId;
     public final String SavePath;
 
     public APPlayerManager(MinecraftServer server)
@@ -37,67 +48,29 @@ public class APPlayerManager
         UUIDToPlayerMap = new Object2ObjectOpenHashMap<>(10);
         PlayerList = new ArrayList<>(10);
         SavePath = server.getSavePath(WorldSavePath.ROOT) + "/" + AdvancedPlayer.MOD_ID + "/players/";
-        TraitInstances = new Object2ObjectOpenHashMap<>();
-        String2TraitsRegister = new Object2ObjectOpenHashMap<>();
+        TraitsRegister = new Object2ObjectOpenHashMap<>();
+        TraitNameToId = new Object2IntOpenHashMap<>();
     }
 
     public void OnStart(MinecraftServer server)
     {
-        Traits.RegisterTraits();
+        Traits.RegisterTraits(this);
     }
 
     public void OnShutdown(MinecraftServer server)
     {
-        SaveTraits();
     }
 
-    public void RegisterTrait(Traits trait)
+    public Traits Register(String name, TraitsInstance defaultInstance)
     {
-        File file = new File(SavePath, TRAITS_SAVE_FILE);
-        if (!file.exists()) return;
-        try
-        {
-            NbtCompound nbt = NbtIo.read(file);
-            if (nbt == null) return;
-            var traitsList = LoadTraits(trait, nbt);
-            TraitInstances.put(trait, traitsList);
-            String2TraitsRegister.put(trait.Name, trait);
-        } catch (IOException e)
-        {
-            throw new RuntimeException(e);
-        }
-    }
+        Traits trait = new Traits();
+        trait.Name = name;
+        trait.Id = NextId++;
+        trait.DefaultInstance = defaultInstance;
 
-    public List<TraitsInstance> LoadTraits(Traits trait, NbtCompound traitsNbt)
-    {
-        if (!traitsNbt.contains(trait.Name)) return new ArrayList<>();
-        byte[] data = traitsNbt.getByteArray(trait.Name);
-        return TraitsInstance.Deserialize(data);
-    }
-
-    public void SaveTraits()
-    {
-        NbtCompound nbt = new NbtCompound();
-        for (var traitsList : TraitInstances.entrySet())
-        {
-            String key = traitsList.getKey().Name;
-            byte[] data = TraitsInstance.Serialize(traitsList.getValue());
-            nbt.putByteArray(key, data);
-        }
-
-        File file = new File(SavePath, TRAITS_SAVE_FILE);
-        if (!file.exists())
-        {
-            file.getParentFile().mkdirs();
-        }
-
-        try
-        {
-            NbtIo.write(nbt, file);
-        } catch (IOException e)
-        {
-            throw new RuntimeException(e);
-        }
+        TraitsRegister.put(trait.Name, trait);
+        TraitNameToId.put(trait.Name, trait.Id);
+        return trait;
     }
 
     public void AddAPPlayer(ServerPlayerEntity serverPlayer, APPlayer apPlayer)

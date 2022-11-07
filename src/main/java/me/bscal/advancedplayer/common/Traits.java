@@ -3,29 +3,24 @@ package me.bscal.advancedplayer.common;
 import me.bscal.advancedplayer.AdvancedPlayer;
 
 import java.util.Objects;
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 
 public class Traits
 {
 
     public static Traits FLU;
 
-    public static void RegisterTraits()
+    public static void RegisterTraits(APPlayerManager pm)
     {
-        FLU = Register("Flu", new TraitsInstance.FluInstance(20 * 30));
+        FLU = pm.Register("Flu", new TraitsInstance.FluInstance("Flu",20 * 30));
     }
 
     public String Name;
+    public int Id;
     public TraitsInstance DefaultInstance;
 
-    public static Traits Register(String name, TraitsInstance defaultInstance)
-    {
-        Traits trait = new Traits();
-        trait.Name = name;
-        trait.DefaultInstance = defaultInstance;
-
-        AdvancedPlayer.APPlayerManager.RegisterTrait(trait);
-        return trait;
-    }
+    public UpdateFunc UpdateFunction;
 
     @Override
     public int hashCode()
@@ -43,5 +38,9 @@ public class Traits
         return false;
     }
 
+    public interface UpdateFunc
+    {
+        void OnUpdate(APPlayer player, TraitsInstance instance);
+    }
 
 }
