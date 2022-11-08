@@ -20,7 +20,7 @@ public class Traits
     public int Id;
     public TraitsInstance DefaultInstance;
 
-    public UpdateFunc UpdateFunction;
+    public TraitUpdateFunc UpdateFunction;
 
     @Override
     public int hashCode()
@@ -38,7 +38,7 @@ public class Traits
         return false;
     }
 
-    public interface UpdateFunc
+    public interface TraitUpdateFunc
     {
         void OnUpdate(APPlayer player, TraitsInstance instance);
     }

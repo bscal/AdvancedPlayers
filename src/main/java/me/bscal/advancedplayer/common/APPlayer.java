@@ -96,6 +96,13 @@ public class APPlayer implements Serializable
         boolean secondTick = m_SecondCounter++ == 20;
         if (secondTick) m_SecondCounter = 0;
 
+        for (var value : TraitsMap.values())
+        {
+            var trait = AdvancedPlayer.APPlayerManager.TraitsRegister.get(value.TraitsName);
+            if (trait != null)
+                trait.UpdateFunction.OnUpdate(this, value);
+        }
+
         UpdateSpoiledItemStacks();
 
         Thirst -= 0.01f;
