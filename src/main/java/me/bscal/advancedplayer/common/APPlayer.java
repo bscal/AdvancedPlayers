@@ -1,7 +1,6 @@
 package me.bscal.advancedplayer.common;
 
 import io.netty.buffer.PooledByteBufAllocator;
-import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import me.bscal.advancedplayer.AdvancedPlayer;
@@ -77,18 +76,42 @@ public class APPlayer implements Serializable
         TraitsMap = new Object2ObjectOpenHashMap<>();
     }
 
+    public void OnLoadPlayer()
+    {
+        for (var value : TraitsMap.values())
+        {
+            var trait = AdvancedPlayer.APPlayerManager.TraitsRegister.get(value.TraitsName);
+            if (trait != null)
+                trait.StartFunction.Run(this, value);
+        }
+    }
+
     public void AddTrait(Traits trait)
     {
         Traits.set(trait.Id);
-        TraitsMap.put(trait.Name, trait.DefaultInstance);
-        AdvancedPlayer.LOGGER.debug(String.format("ADDED trait %s to player %s", trait.Name, Player.getPlayerListName().getString()));
+
+        TraitsInstance instance = trait.DefaultInstance;
+
+        if (trait.AppliedFunction != null)
+            trait.AppliedFunction.Run(this, instance);
+
+        if (trait.StartFunction != null)
+            trait.StartFunction.Run(this, instance);
+
+        TraitsMap.put(trait.Name, instance);
+
+        AdvancedPlayer.LOGGER.info(String.format("ADDED trait %s to player %s", trait.Name, Player.getName().getString()));
     }
 
     public void RemoveTrait(Traits trait)
     {
         Traits.clear(trait.Id);
-        TraitsMap.remove(trait.Name);
-        AdvancedPlayer.LOGGER.debug(String.format("REMOVED trait %s to player %s", trait.Name, Player.getPlayerListName().getString()));
+        TraitsInstance traitInstance = TraitsMap.remove(trait.Name);
+
+        if (traitInstance != null && trait.RemovedFunction != null)
+            trait.RemovedFunction.Run(this, traitInstance);
+
+        AdvancedPlayer.LOGGER.info(String.format("REMOVED trait %s to player %s", trait.Name, Player.getName().getString()));
     }
 
     public void Update(MinecraftServer server, int serverTickTime)
@@ -100,7 +123,7 @@ public class APPlayer implements Serializable
         {
             var trait = AdvancedPlayer.APPlayerManager.TraitsRegister.get(value.TraitsName);
             if (trait != null)
-                trait.UpdateFunction.OnUpdate(this, value);
+                trait.UpdateFunction.Run(this, value);
         }
 
         UpdateSpoiledItemStacks();
@@ -171,6 +194,7 @@ public class APPlayer implements Serializable
     }
 
     public static final ObjectOpenHashSet<Block> TemperatureBlocks = new ObjectOpenHashSet<>();
+
     static
     {
         TemperatureBlocks.add(Blocks.LAVA);

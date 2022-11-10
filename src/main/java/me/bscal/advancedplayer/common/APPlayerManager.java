@@ -1,24 +1,11 @@
 package me.bscal.advancedplayer.common;
 
-import com.mojang.serialization.Lifecycle;
-import io.netty.buffer.PooledByteBufAllocator;
-import io.netty.buffer.Unpooled;
-import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import me.bscal.advancedplayer.AdvancedPlayer;
-import net.fabricmc.fabric.api.networking.v1.S2CPlayChannelEvents;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtIo;
-import net.minecraft.network.PacketByteBuf;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.util.Identifier;
 import net.minecraft.util.WorldSavePath;
-import net.minecraft.util.registry.Registry;
-import net.minecraft.util.registry.RegistryEntry;
-import net.minecraft.util.registry.RegistryKey;
-import net.minecraft.util.registry.SimpleRegistry;
 import org.apache.commons.lang3.SerializationUtils;
 
 import java.io.File;
@@ -28,13 +15,11 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.function.Function;
 
 public class APPlayerManager
 {
 
     public static final String SAVE_EXTENSION = ".bin";
-    public static final String TRAITS_SAVE_FILE = "Traits.dat";
 
     public final Object2ObjectOpenHashMap<UUID, APPlayer> UUIDToPlayerMap;
     public final List<APPlayer> PlayerList;
@@ -61,11 +46,11 @@ public class APPlayerManager
     {
     }
 
-    public Traits Register(String name, TraitsInstance defaultInstance)
+    public Traits Register(TraitsInstance defaultInstance)
     {
         Traits trait = new Traits();
-        trait.Name = name;
         trait.Id = NextId++;
+        trait.Name = defaultInstance.TraitsName;
         trait.DefaultInstance = defaultInstance;
 
         TraitsRegister.put(trait.Name, trait);
@@ -113,6 +98,9 @@ public class APPlayerManager
         if (result == null)
             result = new APPlayer(serverPlayerEntity);
         AddAPPlayer(serverPlayerEntity, result);
+
+        result.OnLoadPlayer();
+
         result.Sync();
         return result;
     }

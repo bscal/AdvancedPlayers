@@ -4,8 +4,8 @@ import com.google.gson.Gson;
 import me.bscal.advancedplayer.common.APPlayerManager;
 import me.bscal.advancedplayer.common.BiomeTemperatures;
 import me.bscal.advancedplayer.common.FoodSpoilage;
-import me.bscal.advancedplayer.common.ItemStackMixinInterface;
 import me.bscal.advancedplayer.common.commands.ServerCommands;
+import me.bscal.advancedplayer.common.commands.TraitCommands;
 import me.bscal.advancedplayer.common.entities.EntityRegistry;
 import me.bscal.advancedplayer.common.entities.GhoulEntity;
 import me.bscal.advancedplayer.common.items.ItemRegistry;
@@ -48,6 +48,7 @@ public class AdvancedPlayer implements ModInitializer
         LOGGER.setLevel(Level.ALL);
 
         ServerCommands.Init();
+        TraitCommands.Init();
         ItemRegistry.Init();
         RegisterEntityAttributes();
 

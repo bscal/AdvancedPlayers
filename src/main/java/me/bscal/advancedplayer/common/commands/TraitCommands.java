@@ -32,6 +32,14 @@ public class TraitCommands
 
             AdvancedPlayer.LOGGER.info(arg);
 
+            var trait = AdvancedPlayer.APPlayerManager.TraitsRegister.get(arg);
+            if (trait != null)
+            {
+                AdvancedPlayer.LOGGER.info("Command found trait!");
+                var apPlayer = AdvancedPlayer.APPlayerManager.UUIDToPlayerMap.get(context.getSource().getPlayer().getUuid());
+                apPlayer.AddTrait(trait);
+            }
+
             return 0;
         }
 
