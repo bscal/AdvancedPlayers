@@ -38,11 +38,14 @@ public class GhoulBrain
 
 	public static void AddIdleActivities(Brain<GhoulEntity> brain)
 	{
-		brain.setTaskList(Activity.IDLE, 10, ImmutableList.of(new UpdateAttackTargetTask<GhoulEntity>(GhoulBrain::GetAttackTarget), MakeRandomWalkTask()));
+		var getAttackTargetTask = UpdateAttackTargetTask.create(GhoulBrain::GetAttackTarget);
+		brain.setTaskList(Activity.IDLE, 10, ImmutableList.of(getAttackTargetTask, MakeRandomWalkTask()));
 	}
 
 	private static RandomTask<GhoulEntity> MakeRandomWalkTask() {
-		return new RandomTask(ImmutableList.of(Pair.of(new StrollTask(0.4f), 2), Pair.of(new GoTowardsLookTarget(0.4f, 3), 2), Pair.of(new WaitTask(30, 60), 1)));
+		var scrollTask = StrollTask.create(0.4f);
+		var goTowardsTask = GoTowardsLookTargetTask.create(0.4f, 3);
+		return new RandomTask(ImmutableList.of(Pair.of(scrollTask, 2), Pair.of(goTowardsTask, 2), Pair.of(new WaitTask(30, 60), 1)));
 	}
 
 	private static Optional<? extends LivingEntity> GetAttackTarget(GhoulEntity ghoul)
@@ -70,7 +73,7 @@ public class GhoulBrain
 		//brain.setTaskList(Activity.FIGHT, 10, ImmutableList.of(new ForgetAttackTargetTask<>(), new MeleeAttackTask(15)), MemoryModuleType.ATTACK_TARGET);
 	}
 
-	public static class HuntTask<E extends MobEntity> extends Task<E>
+	public static class HuntTask<E extends MobEntity> extends MultiTickTask<E>
 	{
 		private final Predicate<E> m_StartCondition;
 		private final Function<E, Optional<? extends LivingEntity>> m_TargetGetter;

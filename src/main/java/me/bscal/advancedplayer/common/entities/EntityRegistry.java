@@ -6,8 +6,9 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityDimensions;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.SpawnGroup;
+import net.minecraft.registry.Registries;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.registry.Registry;
+import net.minecraft.registry.Registry;
 
 public class EntityRegistry
 {
@@ -17,7 +18,7 @@ public class EntityRegistry
 
 	public static <T extends Entity> EntityType<T> Register(String id, FabricEntityTypeBuilder<T> builder)
 	{
-		return Registry.register(Registry.ENTITY_TYPE, new Identifier(AdvancedPlayer.MOD_ID, id), builder.build());
+		return Registry.register(Registries.ENTITY_TYPE, new Identifier(AdvancedPlayer.MOD_ID, id), builder.build());
 	}
 
 }

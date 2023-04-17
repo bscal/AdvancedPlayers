@@ -12,20 +12,23 @@ import net.minecraft.entity.ai.brain.sensor.Sensor;
 import net.minecraft.entity.ai.brain.sensor.SensorType;
 import net.minecraft.entity.attribute.DefaultAttributeContainer;
 import net.minecraft.entity.attribute.EntityAttributes;
-import net.minecraft.entity.damage.DamageSource;
+import net.minecraft.entity.damage.DamageSources;
 import net.minecraft.entity.mob.HostileEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.World;
-import software.bernie.geckolib3.core.IAnimatable;
-import software.bernie.geckolib3.core.PlayState;
-import software.bernie.geckolib3.core.builder.AnimationBuilder;
-import software.bernie.geckolib3.core.controller.AnimationController;
-import software.bernie.geckolib3.core.event.predicate.AnimationEvent;
-import software.bernie.geckolib3.core.manager.AnimationData;
-import software.bernie.geckolib3.core.manager.AnimationFactory;
+import software.bernie.geckolib.animatable.GeoEntity;
+import software.bernie.geckolib.constant.DefaultAnimations;
+import software.bernie.geckolib.core.animatable.GeoAnimatable;
+import software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache;
+import software.bernie.geckolib.core.animation.AnimatableManager;
+import software.bernie.geckolib.core.animation.AnimationController;
+import software.bernie.geckolib.core.animation.AnimationState;
+import software.bernie.geckolib.core.animation.RawAnimation;
+import software.bernie.geckolib.core.object.PlayState;
+import software.bernie.geckolib.util.GeckoLibUtil;
 
-public class GhoulEntity extends HostileEntity implements IAnimatable
+public class GhoulEntity extends HostileEntity implements GeoEntity
 {
 
     private static final float[] LIFESTEAL = new float[]{2.0f, 2.0f, 3.0f, 4.0f};
@@ -48,7 +51,7 @@ public class GhoulEntity extends HostileEntity implements IAnimatable
     // Increase the lower hp you are?
     // If bleed increased healing and can smell you?
 
-    private final AnimationFactory m_Factory = new AnimationFactory(this);
+    private final AnimatableInstanceCache Cache = GeckoLibUtil.createInstanceCache(this);
 
     protected GhoulEntity(EntityType<? extends HostileEntity> entityType, World world)
     {
@@ -82,7 +85,8 @@ public class GhoulEntity extends HostileEntity implements IAnimatable
 
         // TODO bleed gives effects
 
-        boolean bl = target.damage(DamageSource.mob(this), f);
+        DamageSources src = new DamageSources(target.getWorld().getRegistryManager());
+        boolean bl = target.damage(src.mobAttack(this), f);
         if (bl)
         {
             int difficulty = this.world.getDifficulty().getId();
@@ -118,26 +122,6 @@ public class GhoulEntity extends HostileEntity implements IAnimatable
         super.mobTick();
     }
 
-    @Override
-    public void registerControllers(AnimationData animData)
-    {
-        animData.addAnimationController(new AnimationController<>(this, "controller", 0, this::Predicate));
-    }
-
-    private <E extends IAnimatable> PlayState Predicate(AnimationEvent<E> event)
-    {
-        var builder = new AnimationBuilder();
-        builder.addAnimation("animation.ghoul.idle", true);
-        event.getController().setAnimation(builder);
-        return PlayState.CONTINUE;
-    }
-
-    @Override
-    public AnimationFactory getFactory()
-    {
-        return m_Factory;
-    }
-
     public static DefaultAttributeContainer.Builder CreateMobAttributes()
     {
         return LivingEntity.createLivingAttributes()
@@ -145,5 +129,23 @@ public class GhoulEntity extends HostileEntity implements IAnimatable
                 .add(EntityAttributes.GENERIC_MOVEMENT_SPEED, .35f)
                 .add(EntityAttributes.GENERIC_FOLLOW_RANGE, 24.0f)
                 .add(EntityAttributes.GENERIC_ATTACK_KNOCKBACK);
+    }
+
+    @Override
+    public void registerControllers(AnimatableManager.ControllerRegistrar controller)
+    {
+        controller.add(new AnimationController<>(this, "controller", 0, this::IdleAnimation));
+    }
+
+    @Override
+    public AnimatableInstanceCache getAnimatableInstanceCache()
+    {
+        return Cache;
+    }
+
+    private PlayState IdleAnimation(AnimationState<GeoAnimatable> state)
+    {
+        RawAnimation anim = RawAnimation.begin().thenLoop("animation.ghoul.idle");
+        return state.setAndContinue(anim);
     }
 }

@@ -6,8 +6,9 @@ import me.bscal.advancedplayer.common.food.MultiFood;
 import net.fabricmc.fabric.api.item.v1.FabricItemSettings;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemGroup;
+import net.minecraft.registry.Registries;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.registry.Registry;
+import net.minecraft.registry.Registry;
 
 public final class ItemRegistry
 {
@@ -21,7 +22,7 @@ public final class ItemRegistry
 
 	public static void Init()
 	{
-		Sandwich = Register(IdOf("sandwich"), new MultiFoodItem(new FabricItemSettings().group(ItemGroup.FOOD), FoodManager.BreadSlices,
+		Sandwich = Register(IdOf("sandwich"), new MultiFoodItem(new FabricItemSettings(), FoodManager.BreadSlices,
 				() -> {
 					var multifood = new MultiFood();
 					multifood.Perishable.SpawnedTick = System.currentTimeMillis();
@@ -31,13 +32,13 @@ public final class ItemRegistry
 
 	public static MultiFoodItem Register(Identifier id, MultiFoodItem item)
 	{
-		Registry.register(Registry.ITEM, id, item);
+		Registry.register(Registries.ITEM, id, item);
 		return item;
 	}
 
 	public static Item Register(Identifier id, Item item)
 	{
-		Registry.register(Registry.ITEM, id, item);
+		Registry.register(Registries.ITEM, id, item);
 		return item;
 	}
 

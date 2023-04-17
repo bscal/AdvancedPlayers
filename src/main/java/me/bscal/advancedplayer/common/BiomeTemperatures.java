@@ -3,9 +3,10 @@ package me.bscal.advancedplayer.common;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import me.bscal.advancedplayer.AdvancedPlayer;
 import me.bscal.seasons.api.SeasonAPI;
+import net.minecraft.registry.RegistryKeys;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.registry.Registry;
+import net.minecraft.registry.Registry;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.biome.BiomeKeys;
 
@@ -61,7 +62,7 @@ public class BiomeTemperatures
 
     public void Register(ServerWorld world, Identifier biomeId, float[] temperatures)
     {
-        var biome = world.getRegistryManager().get(Registry.BIOME_KEY).get(biomeId);
+        var biome = world.getRegistryManager().get(RegistryKeys.BIOME).get(biomeId);
         if (biome == null) return;
         if (temperatures.length != 4)
         {

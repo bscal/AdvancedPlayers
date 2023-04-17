@@ -12,11 +12,11 @@
     "PlayerEntityMixin",
     "ScreenHandlerMixin",
     "SensorTypeAccessor",
-    "ServerPlayerEntityMixin"
+    "ServerPlayerEntityMixin",
+    "client.SpriteAtlasTextureAccessor"
   ],
   "client": [
-    "client.LightMapTextureManagerMixin",
-    "client.SpriteAtlasTextureMixin$Data"
+    "client.LightMapTextureManagerMixin"
   ],
   "injectors": {
     "defaultRequire": 1

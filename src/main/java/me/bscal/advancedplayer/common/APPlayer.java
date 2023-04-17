@@ -8,18 +8,21 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
+import net.minecraft.block.LightBlock;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.entity.damage.DamageSource;
+import net.minecraft.entity.damage.DamageSources;
 import net.minecraft.entity.effect.StatusEffects;
+import net.minecraft.item.Items;
 import net.minecraft.network.PacketByteBuf;
+import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.state.property.Properties;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.random.Random;
-import net.minecraft.util.registry.RegistryEntry;
 import net.minecraft.world.biome.Biome;
 
 import java.io.Serializable;
@@ -61,6 +64,8 @@ public class APPlayer implements Serializable
 
     private transient int m_SyncCounter;
     private transient int m_SecondCounter;
+    private int m_LightCounterTick;
+    private BlockPos m_LastLightPos;
 
     public APPlayer(MinecraftClient client)
     {
@@ -118,6 +123,7 @@ public class APPlayer implements Serializable
     {
         boolean secondTick = m_SecondCounter++ == 20;
         if (secondTick) m_SecondCounter = 0;
+        DamageSources src = new DamageSources(server.getRegistryManager());
 
         for (var value : TraitsMap.values())
         {
@@ -134,13 +140,13 @@ public class APPlayer implements Serializable
         if (BleedTicks > 0)
         {
             --BleedTicks;
-            Player.damage(DamageSource.GENERIC, 0.05f);
+            Player.damage(src.generic(), 0.05f);
         }
 
         if (HeavyBleedTicks > 0 && HeavyBleedTicks % 20 == 0)
         {
             --HeavyBleedTicks;
-            Player.damage(DamageSource.GENERIC, 2.5f);
+            Player.damage(src.generic(), 2.5f);
         }
 
         int fracturedLegLevel = 0;
@@ -169,8 +175,16 @@ public class APPlayer implements Serializable
             StatusEffects.SLOWNESS.applyUpdateEffect(Player, fracturedLegLevel);
             if (secondTick && Chance(.4f))
             {
-                Player.damage(DamageSource.GENERIC, 2.0f);
+                Player.damage(src.generic(), 2.0f);
             }
+        }
+
+        if (Player.getMainHandStack().getItem() == Items.TORCH)
+        {
+            // TODO works for now
+            var light = new DynamicLights.Light();
+            light.Position = new BlockPos(0,0,0);
+            AdvancedPlayer.DynLights.Lights.putIfAbsent(Player.getUuid(), light);
         }
 
 

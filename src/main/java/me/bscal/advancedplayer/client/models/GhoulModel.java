@@ -5,21 +5,26 @@ import me.bscal.advancedplayer.common.entities.GhoulEntity;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.util.Identifier;
-import software.bernie.geckolib3.model.AnimatedGeoModel;
+import software.bernie.geckolib.model.DefaultedEntityGeoModel;
 
 @Environment(EnvType.CLIENT)
-public class GhoulModel extends AnimatedGeoModel<GhoulEntity>
+public class GhoulModel extends DefaultedEntityGeoModel<GhoulEntity>
 {
+    public GhoulModel()
+    {
+        super(new Identifier(AdvancedPlayer.MOD_ID, "ghoul"));
+    }
+
     @Override
     public Identifier getModelResource(GhoulEntity object)
     {
-        return new Identifier(AdvancedPlayer.MOD_ID, "geo/ghoul.geo.json");
+        return new Identifier(AdvancedPlayer.MOD_ID, "geo/ghoul_gecko.geo.json");
     }
 
     @Override
     public Identifier getTextureResource(GhoulEntity object)
     {
-        return new Identifier(AdvancedPlayer.MOD_ID, "textures/entity/ghoul/ghoul.png");
+        return new Identifier(AdvancedPlayer.MOD_ID, "textures/entity/ghoul/ghoul_gecko.png");
     }
 
     @Override

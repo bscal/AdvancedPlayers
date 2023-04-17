@@ -1,9 +1,10 @@
 package me.bscal.advancedplayer.common.mechanics.temperature;
 
 import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
+import net.minecraft.registry.RegistryKeys;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.registry.Registry;
+import net.minecraft.registry.Registry;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.biome.BiomeKeys;
@@ -30,7 +31,7 @@ public class TemperatureBiomeRegistry
 
     public static void Put(World world, Identifier id, BiomeClimate climate)
     {
-        var biome = world.getRegistryManager().get(Registry.BIOME_KEY).get(id);
+        var biome = world.getRegistryManager().get(RegistryKeys.BIOME).get(id);
         if (biome == null) return;
         BiomeIdToClimate.put(biome, climate);
     }

@@ -104,13 +104,15 @@ public class MultiFoodItem extends Item
         return super.finishUsing(stack, world, user);
     }
 
-    @Override
+/*    @Override
     public void appendStacks(ItemGroup group, DefaultedList<ItemStack> stacks)
     {
         if (this.isIn(group))
         {
             stacks.add(CreateMultiFood(new ItemStack(this)));
         }
-    }
+    }*/
+
+
 
 }

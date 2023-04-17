@@ -1,11 +1,19 @@
 package me.bscal.advancedplayer.client.ui;
 
+import com.mojang.blaze3d.systems.RenderSystem;
 import me.bscal.advancedplayer.client.AdvancedPlayerClient;
 import me.bscal.advancedplayer.common.utils.MathUtils;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.DrawableHelper;
 import net.minecraft.client.gui.hud.InGameHud;
+import net.minecraft.client.render.BufferBuilder;
+import net.minecraft.client.render.BufferRenderer;
+import net.minecraft.client.render.Tessellator;
 import net.minecraft.client.texture.Sprite;
+import net.minecraft.client.texture.SpriteLoader;
+import net.minecraft.client.texture.TextureManager;
 import net.minecraft.client.util.math.MatrixStack;
+import org.joml.Matrix4f;
 
 public class ThirstHud implements PlayerStatusHud.PlayerStatusRenderer
 {
@@ -13,11 +21,11 @@ public class ThirstHud implements PlayerStatusHud.PlayerStatusRenderer
     public static final int MAX_VALUE = 12;
     public static final int SHEET_WIDTH = 16;
 
-    public final Sprite WaterSkinSprites;
+    public Sprite WaterSkinSprites;
 
     public ThirstHud()
     {
-        WaterSkinSprites = AdvancedPlayerClient.AtlasTexture.getSprite(AdvancedPlayerClient.GetUiTexture("water_skin_sprites"));
+
     }
 
     @Override
@@ -28,10 +36,18 @@ public class ThirstHud implements PlayerStatusHud.PlayerStatusRenderer
 
         int xx = xOffset + x + 5;
         int yy = y + 15;
-        InGameHud.drawTexture(matrixStack, xx, yy, WaterSkinSprites.getX(), WaterSkinSprites.getY(), 16, 16, textureWidth, textureHeight);
+
+
+        RenderSystem.setShaderTexture(0, AdvancedPlayerClient.TEXTURE_WATER);
+
+        matrixStack.push();
+        //WaterSkinSprites = AdvancedPlayerClient.AtlasTexture.getSprite(AdvancedPlayerClient.TEXTURE_WATER);
+        InGameHud.drawTexture(matrixStack, xx, yy, 0, 0, 16, 16, 208, 16);
         int textureXCoord = (int) (normalThirst * MAX_VALUE) * SHEET_WIDTH;
         if (textureXCoord > 0)
-            InGameHud.drawTexture(matrixStack, xx, yy, WaterSkinSprites.getX() + textureXCoord, WaterSkinSprites.getY(), 16, 16, textureWidth, textureHeight);
+           InGameHud.drawTexture(matrixStack, xx, yy, textureXCoord, 0, 16, 16, 208, 16);
+        matrixStack.pop();
+
     }
 }
 

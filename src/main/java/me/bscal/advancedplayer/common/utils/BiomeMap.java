@@ -2,8 +2,10 @@ package me.bscal.advancedplayer.common.utils;
 
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
+import net.minecraft.registry.RegistryKey;
+import net.minecraft.registry.RegistryKeys;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.registry.Registry;
+import net.minecraft.registry.Registry;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
 
@@ -27,13 +29,13 @@ public class BiomeMap<V>
 
 	public void put(Identifier id, World world, V value)
 	{
-		var biome = world.getRegistryManager().get(Registry.BIOME_KEY).get(id);
+		var biome = world.getRegistryManager().get(RegistryKeys.BIOME).get(id);
 		put(id, biome, value);
 	}
 
 	public void put(Biome biome, World world, V value)
 	{
-		var id = world.getRegistryManager().get(Registry.BIOME_KEY).getId(biome);
+		var id = world.getRegistryManager().get(RegistryKeys.BIOME).getId(biome);
 		put(id, biome, value);
 	}
 

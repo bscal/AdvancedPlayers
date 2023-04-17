@@ -49,8 +49,13 @@ public class NearestLowHealthLivingEntities extends Sensor<LivingEntity>
         m_CacheList.addAll(0, world.getPlayers());
         m_CacheList.sort(Comparator.comparingDouble(entity::squaredDistanceTo));
 
-        var subList = m_CacheList.subList(0, Math.max(m_CacheList.size(), SUBLIST_SIZE));
+        if (m_CacheList.isEmpty()) return;
+
+        var subList = m_CacheList.subList(0, Math.min(m_CacheList.size(), SUBLIST_SIZE));
         subList.removeIf(player -> entity.distanceTo(player) <= m_Distance);
+
+        if (subList.size() < 1) return;
+
         var brain = entity.getBrain();
         brain.remember(MemoryModuleType.NEAREST_PLAYERS, subList);
         brain.remember(MemoryModuleType.NEAREST_HOSTILE, subList.get(0));

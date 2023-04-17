@@ -6,11 +6,12 @@ import net.minecraft.client.render.LightmapTextureManager;
 import net.minecraft.client.texture.NativeImage;
 import net.minecraft.client.texture.NativeImageBackedTexture;
 import net.minecraft.client.world.ClientWorld;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.Vec3f;
-import net.minecraft.world.World;
 import net.minecraft.world.dimension.DimensionType;
+import org.joml.Vector3f;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -47,6 +48,11 @@ public abstract class LightMapTextureManagerMixin
     @Final
     private NativeImageBackedTexture texture;
 
+    @Shadow
+    private static void clamp(Vector3f vec)
+    {
+    }
+
     /**
      * Mixin to make minecrafts lightmap dark darker. It was easier to Inject and cancel, maybe update into smaller mixins
      */
@@ -54,99 +60,130 @@ public abstract class LightMapTextureManagerMixin
     public void update(float delta, CallbackInfo ci)
     {
         ci.cancel();
-        if (!this.dirty)
+        if (this.dirty)
         {
-            return;
-        }
-        this.dirty = false;
-        this.client.getProfiler().push("lightTex");
-        ClientWorld clientWorld = this.client.world;
-        if (clientWorld == null) return;
-        var dimensionType = clientWorld.getDimension();
+            this.dirty = false;
+            this.client.getProfiler().push("lightTex");
 
-        long time = clientWorld.getTimeOfDay() % 24000L;
-        boolean isDay = IsDayClient(time);
-        float nightMidpoint = GetNightMidpoint(time);
-        float scaleModifier = MathHelper.lerp(nightMidpoint, 0f, MoonPhaseModifier(isDay, clientWorld));
-
-        if (!clientWorld.getDimension().hasSkyLight())
-            scaleModifier = 0f;
-
-        float f = clientWorld.getStarBrightness(1.0f);
-        float g = clientWorld.getLightningTicksLeft() > 0 ? 1.0f : f * 0.95f + 0.05f;
-        float h = this.client.player.getUnderwaterVisibility();
-        float i = this.client.player.hasStatusEffect(StatusEffects.NIGHT_VISION) ?
-                GameRenderer.getNightVisionStrength(this.client.player, delta) :
-                (h > 0.0f && this.client.player.hasStatusEffect(StatusEffects.CONDUIT_POWER) ? h : 0.0f);
-        Vec3f vec3f = new Vec3f(f, f, 1.0f);
-        vec3f.lerp(new Vec3f(1.0f, 1.0f, 1.0f), 0.35f);
-        float j = this.flickerIntensity + 1.5f;
-        Vec3f vec3f2 = new Vec3f();
-        for (int k = 0; k < 16; ++k)
-        {
-            for (int l = 0; l < 16; ++l)
+            ClientWorld clientWorld = this.client.world;
+            if (clientWorld != null)
             {
-                float s;
-                Vec3f vec3f4;
-                float r;
-                float n;
-                float m = LightmapTextureManager.getBrightness(dimensionType, k) * g;
-                float o = n = LightmapTextureManager.getBrightness(dimensionType, l) * j;
-                float p = n * ((n * 0.6f + 0.4f) * 0.6f + 0.4f);
-                float q = n * (n * n * 0.6f + 0.4f);
-                vec3f2.set(o, p, q);
-                if (clientWorld.getDimensionEffects().shouldBrightenLighting())
-                {
-                    vec3f2.lerp(new Vec3f(0.99f, 1.12f, 1.0f), 0.25f);
-                } else
-                {
-                    // TODO sunset/sunset
-                    // TODO moon stages lights
-                    // TODO maybe noon increase light
-                    // TODO flash of green, bloodmoons
-                    // TODO adjust blue at nighttime
+                // bscal
+                long time = clientWorld.getTimeOfDay() % 24000L;
+                boolean isDay = IsDayClient(time);
+                float nightMidpoint = GetNightMidpoint(time);
+                float scaleModifier = MathHelper.lerp(nightMidpoint, 0f, MoonPhaseModifier(isDay, clientWorld));
 
-                    // These seem to be decent values:
-                    // Caves are pitch black but midnight is dark but enough to see outlines
-                    Vec3f vec3f3 = vec3f.copy();
-                    vec3f3.scale(m * 2f);
-                    vec3f3.add(new Vec3f(scaleModifier, scaleModifier, scaleModifier));
-                    vec3f3.subtract(new Vec3f(.21f, .21f, .21f));
-                    //vec3f3.clamp(0.0f, 1.0f);
-                    vec3f2.add(vec3f3);
-                    //vec3f2.lerp(new Vec3f(0.75f, 0.75f, 0.75f), 0.04f);
-                    if (this.renderer.getSkyDarkness(delta) > 0.0f)
-                    {
-                        r = this.renderer.getSkyDarkness(delta);
-                        vec3f4 = vec3f2.copy();
-                        vec3f4.multiplyComponentwise(0.7f, 0.6f, 0.6f);
-                        vec3f2.lerp(vec3f4, r);
+                if (!clientWorld.getDimension().hasSkyLight())
+                    scaleModifier = 0f;
+                // end
+
+                float f = clientWorld.getSkyBrightness(1.0F);
+                float g;
+                if (clientWorld.getLightningTicksLeft() > 0) {
+                    g = 1.0F;
+                } else {
+                    g = f * 0.95F + 0.05F;
+                }
+
+                float h = ((Double)this.client.options.getDarknessEffectScale().getValue()).floatValue();
+                float i = this.GetDarknessFactor(delta) * h;
+                float j = this.GetDarkness(this.client.player, i, delta) * h;
+                float k = this.client.player.getUnderwaterVisibility();
+                float l;
+                if (this.client.player.hasStatusEffect(StatusEffects.NIGHT_VISION)) {
+                    l = GameRenderer.getNightVisionStrength(this.client.player, delta);
+                } else if (k > 0.0F && this.client.player.hasStatusEffect(StatusEffects.CONDUIT_POWER)) {
+                    l = k;
+                } else {
+                    l = 0.0F;
+                }
+
+                Vector3f vector3f = (new Vector3f(f, f, 1.0F)).lerp(new Vector3f(1.0F, 1.0F, 1.0F), 0.35F);
+                float m = this.flickerIntensity + 1.5F;
+                Vector3f vector3f2 = new Vector3f();
+
+                for(int n = 0; n < 16; ++n) {
+                    for(int o = 0; o < 16; ++o) {
+                        float p = GetBrightness(clientWorld.getDimension(), n) * g;
+                        float q = GetBrightness(clientWorld.getDimension(), o) * m;
+                        float s = q * ((q * 0.6F + 0.4F) * 0.6F + 0.4F);
+                        float t = q * (q * q * 0.6F + 0.4F);
+                        vector3f2.set(q, s, t);
+                        boolean bl = clientWorld.getDimensionEffects().shouldBrightenLighting();
+                        float u;
+                        Vector3f vector3f4;
+                        if (bl) {
+                            vector3f2.lerp(new Vector3f(0.99F, 1.12F, 1.0F), 0.25F);
+                            clamp(vector3f2);
+                        } else {
+/*                            Vector3f vector3f3 = (new Vector3f(vector3f)).mul(p);
+                            vector3f2.add(vector3f3);
+                            vector3f2.lerp(new Vector3f(0.75F, 0.75F, 0.75F), 0.04F);
+                            if (this.renderer.getSkyDarkness(delta) > 0.0F) {
+                                u = this.renderer.getSkyDarkness(delta);
+                                vector3f4 = (new Vector3f(vector3f2)).mul(0.7F, 0.6F, 0.6F);
+                                vector3f2.lerp(vector3f4, u);
+                            }*/
+
+                            // TODO sunset/sunset
+                            // TODO moon stages lights
+                            // TODO maybe noon increase light
+                            // TODO flash of green, bloodmoons
+                            // TODO adjust blue at nighttime
+
+                            // These seem to be decent values:
+                            // Caves are pitch black but midnight is dark but enough to see outlines
+                            Vector3f vec3f3 = new Vector3f(vector3f);
+                            vec3f3.mul(p * 2.0f);
+                            vec3f3.add(new Vector3f(scaleModifier, scaleModifier, scaleModifier));
+                            vec3f3.sub(new Vector3f(.21f, .21f, .21f));
+
+                            vector3f2.add(vec3f3);
+                            //vector3f2.lerp(new Vector3f(0.75F, 0.75F, 0.75F), 0.04F);
+                            if (this.renderer.getSkyDarkness(delta) > 0.0f)
+                            {
+                                u = this.renderer.getSkyDarkness(delta);
+                                vector3f4 = (new Vector3f(vector3f2)).mul(0.7F, 0.6F, 0.6F);
+                                vector3f2.lerp(vector3f4, u);
+                            }
+                        }
+
+                        float v;
+                        if (l > 0.0F) {
+                            v = Math.max(vector3f2.x(), Math.max(vector3f2.y(), vector3f2.z()));
+                            if (v < 1.0F) {
+                                u = 1.0F / v;
+                                vector3f4 = (new Vector3f(vector3f2)).mul(u);
+                                vector3f2.lerp(vector3f4, l);
+                            }
+                        }
+
+                        if (!bl) {
+                            if (j > 0.0F) {
+                                vector3f2.add(-j, -j, -j);
+                            }
+
+                            clamp(vector3f2);
+                        }
+
+                        v = ((Double)this.client.options.getGamma().getValue()).floatValue();
+                        Vector3f vector3f5 = new Vector3f(this.easeOutQuart(vector3f2.x), this.easeOutQuart(vector3f2.y), this.easeOutQuart(vector3f2.z));
+                        vector3f2.lerp(vector3f5, Math.max(0.0F, v - i));
+                        vector3f2.lerp(new Vector3f(0.75F, 0.75F, 0.75F), 0.04F);
+                        clamp(vector3f2);
+                        vector3f2.mul(255.0F);
+                        int x = (int)vector3f2.x();
+                        int y = (int)vector3f2.y();
+                        int z = (int)vector3f2.z();
+                        this.image.setColor(o, n, -16777216 | z << 16 | y << 8 | x);
                     }
                 }
-                vec3f2.clamp(0.0f, 1.0f);
-                if (i > 0.0f && (s = Math.max(vec3f2.getX(), Math.max(vec3f2.getY(), vec3f2.getZ()))) < 1.0f)
-                {
-                    r = 1.0f / s;
-                    vec3f4 = vec3f2.copy();
-                    vec3f4.scale(r);
-                    vec3f2.lerp(vec3f4, i);
-                }
-                float s2 = this.client.options.getGamma().getValue().floatValue();
-                Vec3f vec3f5 = vec3f2.copy();
-                vec3f5.modify(this::easeOutQuart);
-                vec3f2.lerp(vec3f5, s2);
-                //vec3f2.lerp(new Vec3f(0.75f, 0.75f, 0.75f), 0.04f);
-                vec3f2.clamp(0.0f, 1.0f);
-                vec3f2.scale(255.0f);
-                int t = 255;
-                int u = (int) vec3f2.getX();
-                int v = (int) vec3f2.getY();
-                int w = (int) vec3f2.getZ();
-                this.image.setColor(l, k, 0xFF000000 | w << 16 | v << 8 | u);
+
+                this.texture.upload();
+                this.client.getProfiler().pop();
             }
         }
-        this.texture.upload();
-        this.client.getProfiler().pop();
     }
 
     private static final float[] MOON_PHASE_VALUES = new float[]{.075f, .02f, -.01f, -.06f, -.15f, -.06f, -.01f, .02f};
@@ -168,6 +205,28 @@ public abstract class LightMapTextureManagerMixin
         if (time < 13000) return 0f;
         long diff = Math.abs(18000L - time);
         return MathHelper.clamp(1f - (float) diff / 6000L, 0f, 1f);
+    }
+
+    private static float GetBrightness(DimensionType type, int lightLevel) {
+        float f = (float)lightLevel / 15.0F;
+        float g = f / (4.0F - 3.0F * f);
+        return MathHelper.lerp(type.ambientLight(), g, 1.0F);
+    }
+
+    private float GetDarknessFactor(float delta) {
+        if (this.client.player.hasStatusEffect(StatusEffects.DARKNESS)) {
+            StatusEffectInstance statusEffectInstance = this.client.player.getStatusEffect(StatusEffects.DARKNESS);
+            if (statusEffectInstance != null && statusEffectInstance.getFactorCalculationData().isPresent()) {
+                return ((StatusEffectInstance.FactorCalculationData)statusEffectInstance.getFactorCalculationData().get()).lerp(this.client.player, delta);
+            }
+        }
+
+        return 0.0F;
+    }
+
+    private float GetDarkness(LivingEntity entity, float factor, float delta) {
+        float f = 0.45F * factor;
+        return Math.max(0.0F, MathHelper.cos(((float)entity.age - delta) * 3.1415927F * 0.025F) * f);
     }
 
 }

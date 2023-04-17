@@ -3,19 +3,23 @@ package me.bscal.advancedplayer;
 import com.google.gson.Gson;
 import me.bscal.advancedplayer.common.APPlayerManager;
 import me.bscal.advancedplayer.common.BiomeTemperatures;
+import me.bscal.advancedplayer.common.DynamicLights;
 import me.bscal.advancedplayer.common.FoodSpoilage;
 import me.bscal.advancedplayer.common.commands.ServerCommands;
 import me.bscal.advancedplayer.common.commands.TraitCommands;
 import me.bscal.advancedplayer.common.entities.EntityRegistry;
 import me.bscal.advancedplayer.common.entities.GhoulEntity;
 import me.bscal.advancedplayer.common.items.ItemRegistry;
+import me.bscal.advancedplayer.common.items.MultiFoodItem;
 import me.bscal.advancedplayer.common.mechanics.temperature.TemperatureBiomeRegistry;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry;
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.item.ItemGroups;
 import net.minecraft.server.MinecraftServer;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
@@ -31,6 +35,8 @@ public class AdvancedPlayer implements ModInitializer
     public static BiomeTemperatures BiomeTemperatures;
     private static boolean SeasonsEnabled;
     public static MinecraftServer Server;
+
+    public static final DynamicLights DynLights = new DynamicLights();
 
     public static final String KEY_ITEMSTACK_SPOIL = "SpoilDuration";
     public static final String KEY_ITEMSTACK_SPOIL_END = "SpoilEnd";
@@ -65,6 +71,8 @@ public class AdvancedPlayer implements ModInitializer
 
         ServerLifecycleEvents.SERVER_STOPPING.register(server ->
         {
+            DynLights.Free(server);
+
             APPlayerManager.OnShutdown(server);
         });
 
@@ -78,6 +86,8 @@ public class AdvancedPlayer implements ModInitializer
         });
         ServerTickEvents.END_SERVER_TICK.register(server ->
         {
+            DynLights.UpdateLights(server);
+
             FoodSpoilage.UpdateServer(server);
 
             int tick = server.getTicks();
@@ -85,6 +95,10 @@ public class AdvancedPlayer implements ModInitializer
             {
                 apPlayer.Update(server, tick);
             }
+        });
+
+        ItemGroupEvents.modifyEntriesEvent(ItemGroups.FOOD_AND_DRINK).register(entries -> {
+            entries.add(ItemRegistry.Sandwich);
         });
     }
 
@@ -97,6 +111,8 @@ public class AdvancedPlayer implements ModInitializer
     {
         return SeasonsEnabled;
     }
+
+
 
 
 }

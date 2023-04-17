@@ -17,11 +17,11 @@ public class TemperatureWindow implements PlayerStatusHud.PlayerStatusRenderer
 
     public static final int ICON_OFFSET = 16 / 2;
 
-    private final Sprite Thermometer;
+    //private final Sprite Thermometer;
 
     public TemperatureWindow()
     {
-        Thermometer = AdvancedPlayerClient.AtlasTexture.getSprite(AdvancedPlayerClient.TEXTURE_THERMOMETER);
+        //Thermometer = AdvancedPlayerClient.AtlasTexture.getSprite(AdvancedPlayerClient.TEXTURE_THERMOMETER);
     }
 
     private Identifier SetTemperature(float temperature)
@@ -40,12 +40,12 @@ public class TemperatureWindow implements PlayerStatusHud.PlayerStatusRenderer
         Sprite sprite;
         if (outsideTemperature > 0)
         {
-            sprite = AdvancedPlayerClient.AtlasTexture.getSprite(AdvancedPlayerClient.TEXTURE_UP_CARROT);
+            //sprite = AdvancedPlayerClient.AtlasTexture.getSprite(AdvancedPlayerClient.TEXTURE_UP_CARROT);
             RenderSystem.setShaderColor(1, 0, 0, 1);
         }
         else if (outsideTemperature < 0)
         {
-            sprite = AdvancedPlayerClient.AtlasTexture.getSprite(AdvancedPlayerClient.TEXTURE_DOWN_CARROT);
+            //sprite = AdvancedPlayerClient.AtlasTexture.getSprite(AdvancedPlayerClient.TEXTURE_DOWN_CARROT);
             RenderSystem.setShaderColor(0, 0, 1, 1);
         }
         else return;
@@ -57,10 +57,10 @@ public class TemperatureWindow implements PlayerStatusHud.PlayerStatusRenderer
         matrixStack.translate(xx, yy, 0);
         matrixStack.scale(.5f, .5f, 0);
         matrixStack.translate(-xx - .5f, -yy, 0);
-        InGameHud.drawSprite(matrixStack, x, y, 0, 16, 16, sprite);
+        //InGameHud.drawSprite(matrixStack, x, y, 0, 16, 16, sprite);
         if (Math.abs(outsideTemperature) >= 5)
         {
-            InGameHud.drawSprite(matrixStack, x, y - 6, 0, 16, 16, sprite);
+            //InGameHud.drawSprite(matrixStack, x, y - 6, 0, 16, 16, sprite);
         }
         matrixStack.pop();
     }
@@ -68,14 +68,25 @@ public class TemperatureWindow implements PlayerStatusHud.PlayerStatusRenderer
     @Override
     public void Render(MatrixStack matrixStack, float tickDelta, MinecraftClient client, int xOffset, int x, int y, int textureWidth, int textureHeight)
     {
+        //RenderSystem.setShaderTexture(0, AdvancedPlayerClient.AtlasTexture.getId());
         var coreBodyTemperature = AdvancedPlayerClient.ClientAPPlayer.BodyTemperature;
         var outsideTemperature = AdvancedPlayerClient.ClientAPPlayer.OutsideTemperature;
 
         int xx = xOffset + x + 5;
-        InGameHud.drawSprite(matrixStack, xx, y, 0, 16, 32, Thermometer);
+        float u = 0;
+        float v = 0;
+        int w = 16;
+        int h = 32;
+
+        matrixStack.push();
+
+        RenderSystem.setShaderTexture(0, AdvancedPlayerClient.TEXTURE_THERMOMETER);
+        InGameHud.drawTexture(matrixStack, xx, y, u, v, w, h, w, h);
 
         var spriteId = SetTemperature(coreBodyTemperature);
-        InGameHud.drawSprite(matrixStack, xx, y, 0, 16, 32, AdvancedPlayerClient.AtlasTexture.getSprite(spriteId));
-        DrawChange(matrixStack, xx, y, outsideTemperature);
+        RenderSystem.setShaderTexture(0, spriteId);
+        InGameHud.drawTexture(matrixStack, xx, y, u, v, w, h, w, h);
+        //DrawChange(matrixStack, xx, y, outsideTemperature);
+        matrixStack.pop();
     }
 }
